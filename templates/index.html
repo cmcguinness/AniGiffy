@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mt-3">
+    <!-- Left Panel - Frame List -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-images"></i> Frames
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Upload Button -->
+                <div class="mb-3">
+                    <input type="file" id="imageUpload" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+                    <button id="uploadButton" class="btn btn-primary w-100">
+                        <i class="bi bi-upload"></i> Upload Images
+                    </button>
+                </div>
+
+                <!-- Frame List -->
+                <div id="frameList" class="frame-list">
+                    <div class="text-center text-muted py-5" id="emptyFrameMessage">
+                        <i class="bi bi-card-image" style="font-size: 3rem;"></i>
+                        <p class="mt-2">No frames yet.<br>Upload images to get started.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel - Preview and Settings -->
+    <div class="col-md-8">
+        <!-- Preview Card -->
+        <div class="card mb-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-eye"></i> Preview
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div id="previewContainer" class="preview-container">
+                    <div id="previewPlaceholder" class="text-muted py-5">
+                        <i class="bi bi-play-circle" style="font-size: 4rem;"></i>
+                        <p class="mt-2">Preview will appear here</p>
+                    </div>
+                    <img id="previewImage" class="d-none" style="max-width: 100%; max-height: 400px;">
+                </div>
+                <div class="mt-3">
+                    <button id="generatePreview" class="btn btn-info" disabled>
+                        <i class="bi bi-lightning"></i> Generate Preview
+                    </button>
+                    <button id="generateFull" class="btn btn-success" disabled>
+                        <i class="bi bi-download"></i> Generate GIF
+                    </button>
+                </div>
+                <div id="generationStatus" class="mt-2"></div>
+            </div>
+        </div>
+
+        <!-- Settings Card -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-gear"></i> Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="scale" class="form-label">Output Scale</label>
+                        <select class="form-select" id="scale">
+                            <option value="100">100%</option>
+                            <option value="75">75%</option>
+                            <option value="66">66%</option>
+                            <option value="50">50%</option>
+                            <option value="33">33%</option>
+                            <option value="25">25%</option>
+                            <option value="10">10%</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Output Size</label>
+                        <div class="form-control-plaintext" id="outputSize">-</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="loop" class="form-label">Loop Count</label>
+                        <input type="number" class="form-control" id="loop" value="0" min="0">
+                        <small class="form-text text-muted">0 = infinite</small>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="form-check form-switch mt-4">
+                            <input class="form-check-input" type="checkbox" id="transparent">
+                            <label class="form-check-label" for="transparent">Transparent GIF</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3" id="backgroundColorGroup">
+                        <label for="backgroundColor" class="form-label">Background Color</label>
+                        <input type="color" class="form-control form-control-color w-100" id="backgroundColor" value="#FFFFFF">
+                    </div>
+                    <div class="col-md-4 mb-3 d-none" id="alphaThresholdGroup">
+                        <label for="alphaThreshold" class="form-label">Alpha Threshold: <span id="alphaThresholdValue">128</span></label>
+                        <input type="range" class="form-range" id="alphaThreshold" min="0" max="255" value="128">
+                        <small class="form-text text-muted">Pixels below this become transparent</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

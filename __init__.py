@@ -1,0 +1,1 @@
+# AniGiffy - Animated GIF Creator

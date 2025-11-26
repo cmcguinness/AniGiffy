@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AniGiffy - Animated GIF Creator{% endblock %}</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-film"></i> AniGiffy
+            </span>
+            <span class="navbar-text text-white">
+                Animated GIF Creator
+            </span>
+            <button class="btn btn-outline-light btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#helpModal">
+                <i class="bi bi-question-circle"></i> Help
+            </button>
+        </div>
+    </nav>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="helpModalLabel"><i class="bi bi-question-circle"></i> How to Use AniGiffy</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="fw-bold"><i class="bi bi-1-circle"></i> Upload Images</h6>
+                    <p>Click <strong>Upload Images</strong> to select one or more image files. Supported formats: PNG, JPEG, GIF, and WebP. The output dimensions are automatically set from the first image you upload.</p>
+
+                    <h6 class="fw-bold"><i class="bi bi-2-circle"></i> Arrange Frames</h6>
+                    <p><strong>Drag and drop</strong> frames in the list to reorder them. Click the <i class="bi bi-trash text-danger"></i> icon to remove a frame.</p>
+
+                    <h6 class="fw-bold"><i class="bi bi-3-circle"></i> Adjust Timing</h6>
+                    <p>Set the <strong>Duration</strong> (in milliseconds) for each frame. Default is 100ms. Lower values = faster animation.</p>
+
+                    <hr>
+
+                    <h6 class="fw-bold"><i class="bi bi-gear"></i> Settings</h6>
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><strong>Output Scale</strong></td>
+                                <td>Scale the output GIF from 10% to 100% of the original image size. Smaller scales create smaller file sizes.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Output Size</strong></td>
+                                <td>Shows the final dimensions based on your scale selection.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Loop Count</strong></td>
+                                <td>Set to <code>0</code> for infinite looping, or enter a number for a specific number of plays.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Transparent GIF</strong></td>
+                                <td>Enable to create a GIF with transparent areas. Works best with PNG images that have alpha channels.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Background Color</strong></td>
+                                <td>When transparency is disabled, this color fills any transparent areas in your source images.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Alpha Threshold</strong></td>
+                                <td>When transparency is enabled, pixels with opacity below this value (0-255) become fully transparent.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <hr>
+
+                    <h6 class="fw-bold"><i class="bi bi-lightning"></i> Generate Preview</h6>
+                    <p>Creates a quick preview using up to 10 frames. Use this to check your animation before generating the final GIF.</p>
+
+                    <h6 class="fw-bold"><i class="bi bi-download"></i> Generate GIF</h6>
+                    <p>Creates the final animated GIF with all frames and <strong>automatically downloads</strong> it to your computer.</p>
+
+                    <hr>
+
+                    <h6 class="fw-bold"><i class="bi bi-info-circle"></i> Tips</h6>
+                    <ul class="mb-0">
+                        <li>For best results, use images that are all the same size</li>
+                        <li>Smaller output scales create significantly smaller file sizes</li>
+                        <li>PNG images work best for transparency</li>
+                        <li>Session data is automatically cleaned up after 1 week of inactivity</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
