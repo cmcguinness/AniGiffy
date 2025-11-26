@@ -46,6 +46,7 @@ function initializeEventListeners() {
     // Generate buttons
     document.getElementById('generatePreview').addEventListener('click', generatePreview);
     document.getElementById('generateFull').addEventListener('click', generateFullGIF);
+    document.getElementById('stopPreview').addEventListener('click', stopPreview);
 
     // Settings inputs
     document.getElementById('scale').addEventListener('change', updateSettings);
@@ -352,13 +353,30 @@ async function generateFullGIF() {
 function displayPreview(path) {
     const placeholder = document.getElementById('previewPlaceholder');
     const image = document.getElementById('previewImage');
+    const stopBtn = document.getElementById('stopPreview');
 
     placeholder.classList.add('d-none');
     image.classList.remove('d-none');
+    stopBtn.classList.remove('d-none');
 
     // Add cache buster to force reload
     image.src = path + '?t=' + Date.now();
     state.currentPreview = path;
+}
+
+function stopPreview() {
+    const placeholder = document.getElementById('previewPlaceholder');
+    const image = document.getElementById('previewImage');
+    const stopBtn = document.getElementById('stopPreview');
+    const statusDiv = document.getElementById('generationStatus');
+
+    // Hide preview, show placeholder
+    image.classList.add('d-none');
+    image.src = '';
+    placeholder.classList.remove('d-none');
+    stopBtn.classList.add('d-none');
+    statusDiv.innerHTML = '';
+    state.currentPreview = null;
 }
 
 // Settings Updates
