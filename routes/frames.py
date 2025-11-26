@@ -67,7 +67,10 @@ def upload_image():
         # Get image dimensions
         width, height = img.size
 
-        logger.info(f"Image uploaded: {filename} ({width}x{height}, {file_size} bytes)")
+        # Check if image has transparency
+        has_transparency = img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info)
+
+        logger.info(f"Image uploaded: {filename} ({width}x{height}, {file_size} bytes, transparency={has_transparency})")
 
         return jsonify({
             'success': True,
@@ -75,7 +78,8 @@ def upload_image():
             'path': f"uploads/{filename}",
             'size': file_size,
             'width': width,
-            'height': height
+            'height': height,
+            'hasTransparency': has_transparency
         }), 200
 
     except Exception as e:

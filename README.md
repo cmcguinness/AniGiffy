@@ -7,6 +7,7 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 - **Image Upload**: Support for PNG, JPEG, GIF, and WebP formats
 - **Frame Management**: Add, remove, and reorder frames with drag-and-drop
 - **Auto-Detect Dimensions**: Output size automatically set from first uploaded image
+- **Auto-Detect Transparency**: Transparency mode enabled automatically if first image has alpha channel
 - **Scale Control**: Scale output from 10% to 100% of original dimensions
 - **Transparency Support**: Create GIFs with transparent backgrounds
 - **Live Preview**: Generate quick previews before final export
@@ -59,8 +60,9 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
    - **Transparent GIF**: Enable for transparency support
    - **Background Color**: Fill color for non-transparent GIFs
    - **Alpha Threshold**: Pixels below this opacity become transparent
-5. **Generate Preview**: Quick preview with up to 10 frames
-6. **Generate GIF**: Create and automatically download the final animated GIF
+5. **Preview**: Quick preview with up to 10 frames
+6. **Stop**: Stop the preview animation
+7. **Generate GIF**: Create and automatically download the final animated GIF
 
 ## Configuration
 

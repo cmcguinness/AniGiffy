@@ -13,7 +13,7 @@ body {
 
 .container-fluid {
     flex: 1;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 footer {

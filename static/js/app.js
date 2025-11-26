@@ -82,6 +82,13 @@ async function handleImageUpload(event) {
                 if (state.settings.originalWidth === null || state.settings.originalHeight === null) {
                     state.settings.originalWidth = data.width;
                     state.settings.originalHeight = data.height;
+
+                    // Auto-enable transparency if first image has it
+                    if (data.hasTransparency) {
+                        state.settings.transparent = true;
+                        document.getElementById('transparent').checked = true;
+                        updateTransparencyUI();
+                    }
                 }
 
                 // Add frame to state
@@ -273,7 +280,6 @@ async function generatePreview() {
 
         if (response.ok) {
             displayPreview(data.path);
-            showToast('Preview generated!', 'success');
             statusDiv.innerHTML = `<small class="text-success">${data.message} (${formatFileSize(data.size)})</small>`;
         } else {
             showToast(`Preview failed: ${data.message}`, 'danger');
@@ -285,7 +291,7 @@ async function generatePreview() {
         statusDiv.innerHTML = '<small class="text-danger">Generation failed</small>';
     } finally {
         button.disabled = false;
-        button.innerHTML = '<i class="bi bi-lightning"></i> Generate Preview';
+        button.innerHTML = '<i class="bi bi-lightning"></i> Preview';
     }
 }
 
