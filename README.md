@@ -10,6 +10,7 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 - **Auto-Detect Transparency**: Transparency mode enabled automatically if first image has alpha channel
 - **Scale Control**: Scale output from 10% to 100% of original dimensions
 - **Transparency Support**: Create GIFs with transparent backgrounds
+- **Cross-Fade Transitions**: Smooth transitions between frames with configurable timing and steps
 - **Live Preview**: Generate quick previews before final export
 - **Auto-Download**: Generated GIFs download automatically
 - **Multi-User Safe**: Session-based isolation with automatic cleanup
@@ -60,7 +61,9 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
    - **Transparent GIF**: Enable for transparency support
    - **Background Color**: Fill color for non-transparent GIFs
    - **Alpha Threshold**: Pixels below this opacity become transparent
-5. **Preview**: Quick preview with up to 10 frames
+   - **Transition Time**: Cross-fade duration in milliseconds (0 = no transitions)
+   - **Transition Steps**: Number of intermediate frames in cross-fade
+5. **Preview**: Quick preview with up to 10 frames (auto-stops previous preview)
 6. **Stop**: Stop the preview animation
 7. **Generate GIF**: Create and automatically download the final animated GIF
 

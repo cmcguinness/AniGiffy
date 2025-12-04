@@ -84,13 +84,21 @@
                                 <td><strong>Alpha Threshold</strong></td>
                                 <td>When transparency is enabled, pixels with opacity below this value (0-255) become fully transparent.</td>
                             </tr>
+                            <tr>
+                                <td><strong>Transition Time</strong></td>
+                                <td>Duration of cross-fade transition between frames in milliseconds. Set to 0 to disable transitions. Must be less than frame duration.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Transition Steps</strong></td>
+                                <td>Number of intermediate frames created during cross-fade. More steps = smoother transition but larger file size.</td>
+                            </tr>
                         </tbody>
                     </table>
 
                     <hr>
 
                     <h6 class="fw-bold"><i class="bi bi-lightning"></i> Preview</h6>
-                    <p>Creates a quick preview using up to 10 frames. Use this to check your animation before generating the final GIF.</p>
+                    <p>Creates a quick preview using up to 10 frames. Use this to check your animation before generating the final GIF. Automatically stops any previous preview.</p>
 
                     <h6 class="fw-bold"><i class="bi bi-stop-circle"></i> Stop</h6>
                     <p>Stops the preview animation and clears the preview area. Useful if the animation timing is distracting.</p>

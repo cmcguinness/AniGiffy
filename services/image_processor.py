@@ -1,5 +1,5 @@
 import logging
-from PIL import Image
+from PIL import Image, ImageOps
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,18 @@ class ImageProcessor:
             # Reopen after verify (verify() closes the file)
             img = Image.open(file_path)
 
+            # Save format before orientation correction
+            img_format = img.format
+
+            # Apply EXIF orientation if present
+            img = ImageOps.exif_transpose(img)
+
+            # Restore format if it was lost
+            if img and not hasattr(img, 'format'):
+                img.format = img_format
+
             # Check format
-            if img.format.lower() not in ['png', 'jpeg', 'gif', 'webp']:
+            if img_format and img_format.lower() not in ['png', 'jpeg', 'gif', 'webp']:
                 return None, f"Unsupported image format: {img.format}"
 
             # Check dimensions

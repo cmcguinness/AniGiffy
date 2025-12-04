@@ -4,7 +4,7 @@ import secrets
 class Config:
     # Flask settings
     SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max request size
+    MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB max request size
 
     # Session settings
     SESSION_TYPE = 'filesystem'
@@ -18,12 +18,12 @@ class Config:
 
     # Resource quotas per session
     QUOTAS = {
-        'max_upload_size': 10 * 1024 * 1024,  # 10MB per image
-        'max_total_storage': 50 * 1024 * 1024,  # 50MB total per session
+        'max_upload_size': 25 * 1024 * 1024,  # 25MB per image (modern phone photos)
+        'max_total_storage': 200 * 1024 * 1024,  # 200MB total per session
         'max_images': 50,  # Max images per project
         'max_frames': 200,  # Max frames in animation
-        'max_output_size': 20 * 1024 * 1024,  # 20MB max GIF
-        'max_dimension': 2000,  # Max width/height
+        'max_output_size': 50 * 1024 * 1024,  # 50MB max GIF
+        'max_dimension': 4096,  # Max width/height (4K resolution)
         'max_projects': 10,  # Max projects per session
     }
 

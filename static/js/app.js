@@ -10,7 +10,9 @@ const state = {
         defaultDuration: 100,
         transparent: false,
         backgroundColor: '#FFFFFF',
-        alphaThreshold: 128
+        alphaThreshold: 128,
+        transitionTime: 0,
+        transitionSteps: 5
     },
     frames: [],
     currentPreview: null
@@ -43,6 +45,32 @@ function initializeEventListeners() {
     // Image upload handler
     document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
 
+    // Drag and drop handlers
+    const dropZone = document.getElementById('dropZone');
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleImageUpload({ target: { files: files } });
+        }
+    });
+
     // Generate buttons
     document.getElementById('generatePreview').addEventListener('click', generatePreview);
     document.getElementById('generateFull').addEventListener('click', generateFullGIF);
@@ -56,14 +84,16 @@ function initializeEventListeners() {
     document.getElementById('transparent').addEventListener('change', updateTransparencySettings);
     document.getElementById('backgroundColor').addEventListener('change', updateSettings);
     document.getElementById('alphaThreshold').addEventListener('input', updateAlphaThreshold);
+
+    // Transition settings
+    document.getElementById('transitionTime').addEventListener('change', updateSettings);
+    document.getElementById('transitionSteps').addEventListener('change', updateSettings);
 }
 
 // Image Upload
 async function handleImageUpload(event) {
     const files = event.target.files;
     if (files.length === 0) return;
-
-    showToast('Uploading images...', 'info');
 
     for (let file of files) {
         try {
@@ -111,10 +141,6 @@ async function handleImageUpload(event) {
 
     // Reset input
     event.target.value = '';
-
-    if (state.frames.length > 0) {
-        showToast('Images uploaded successfully', 'success');
-    }
 }
 
 // Frame Management
@@ -247,6 +273,11 @@ async function generatePreview() {
     if (state.frames.length === 0) {
         showToast('Add frames before generating', 'warning');
         return;
+    }
+
+    // Stop current preview if one is showing
+    if (state.currentPreview) {
+        stopPreview();
     }
 
     const button = document.getElementById('generatePreview');
@@ -392,6 +423,8 @@ function updateSettings() {
     state.settings.transparent = document.getElementById('transparent').checked;
     state.settings.backgroundColor = document.getElementById('backgroundColor').value;
     state.settings.alphaThreshold = parseInt(document.getElementById('alphaThreshold').value);
+    state.settings.transitionTime = parseInt(document.getElementById('transitionTime').value);
+    state.settings.transitionSteps = parseInt(document.getElementById('transitionSteps').value);
     updateOutputSizeDisplay();
 }
 

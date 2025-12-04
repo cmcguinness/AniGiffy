@@ -32,7 +32,8 @@ class Project:
     """Represents an animation project"""
 
     def __init__(self, name, width=800, height=600, loop=0, default_duration=100,
-                 transparent=False, background_color='#FFFFFF', alpha_threshold=128):
+                 transparent=False, background_color='#FFFFFF', alpha_threshold=128,
+                 transition_time=0, transition_steps=5):
         self.name = name
         self.created = datetime.utcnow().isoformat()
         self.modified = datetime.utcnow().isoformat()
@@ -43,7 +44,9 @@ class Project:
             'defaultDuration': default_duration,
             'transparent': transparent,
             'backgroundColor': background_color,
-            'alphaThreshold': alpha_threshold
+            'alphaThreshold': alpha_threshold,
+            'transitionTime': transition_time,
+            'transitionSteps': transition_steps
         }
         self.frames = []
 
@@ -104,6 +107,10 @@ class Project:
             self.settings['backgroundColor'] = str(kwargs['backgroundColor'])
         if 'alphaThreshold' in kwargs:
             self.settings['alphaThreshold'] = int(kwargs['alphaThreshold'])
+        if 'transitionTime' in kwargs:
+            self.settings['transitionTime'] = int(kwargs['transitionTime'])
+        if 'transitionSteps' in kwargs:
+            self.settings['transitionSteps'] = int(kwargs['transitionSteps'])
 
         self.update_modified()
 
@@ -142,7 +149,9 @@ class Project:
             default_duration=settings.get('defaultDuration', 100),
             transparent=settings.get('transparent', False),
             background_color=settings.get('backgroundColor', '#FFFFFF'),
-            alpha_threshold=settings.get('alphaThreshold', 128)
+            alpha_threshold=settings.get('alphaThreshold', 128),
+            transition_time=settings.get('transitionTime', 0),
+            transition_steps=settings.get('transitionSteps', 5)
         )
 
         project.created = data.get('created', datetime.utcnow().isoformat())
