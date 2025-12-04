@@ -11,6 +11,7 @@ const state = {
         transparent: false,
         backgroundColor: '#FFFFFF',
         alphaThreshold: 128,
+        transitionType: 'crossfade',
         transitionTime: 0,
         transitionSteps: 5
     },
@@ -37,11 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Event Listeners
 function initializeEventListeners() {
-    // Image upload button triggers file input
-    document.getElementById('uploadButton').addEventListener('click', function() {
-        document.getElementById('imageUpload').click();
-    });
-
     // Image upload handler
     document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
 
@@ -72,7 +68,9 @@ function initializeEventListeners() {
     });
 
     // Generate buttons
-    document.getElementById('generatePreview').addEventListener('click', generatePreview);
+    document.getElementById('generatePreview').addEventListener('click', () => generatePreview(null));
+    document.getElementById('generateQuickPreview').addEventListener('click', () => generatePreview(10));
+    document.getElementById('generateFullPreview').addEventListener('click', () => generatePreview(null));
     document.getElementById('generateFull').addEventListener('click', generateFullGIF);
     document.getElementById('stopPreview').addEventListener('click', stopPreview);
 
@@ -86,6 +84,7 @@ function initializeEventListeners() {
     document.getElementById('alphaThreshold').addEventListener('input', updateAlphaThreshold);
 
     // Transition settings
+    document.getElementById('transitionType').addEventListener('change', updateSettings);
     document.getElementById('transitionTime').addEventListener('change', updateSettings);
     document.getElementById('transitionSteps').addEventListener('change', updateSettings);
 }
@@ -146,23 +145,57 @@ async function handleImageUpload(event) {
 // Frame Management
 function renderFrames() {
     const frameList = document.getElementById('frameList');
-
-    if (state.frames.length === 0) {
-        frameList.innerHTML = `
-            <div class="text-center text-muted py-5">
-                <i class="bi bi-card-image" style="font-size: 3rem;"></i>
-                <p class="mt-2">No frames yet.<br>Upload images to get started.</p>
-            </div>
-        `;
-        return;
-    }
-
     frameList.innerHTML = '';
 
+    // Render existing frames
     state.frames.forEach((frame, index) => {
         const frameElement = createFrameElement(frame, index);
         frameList.appendChild(frameElement);
     });
+
+    // Always add "Add Image" placeholder at the end
+    const addImagePlaceholder = createAddImagePlaceholder();
+    frameList.appendChild(addImagePlaceholder);
+}
+
+function createAddImagePlaceholder() {
+    const div = document.createElement('div');
+    div.className = 'add-image-placeholder';
+    div.innerHTML = `
+        <i class="bi bi-plus-circle"></i>
+        <p class="mb-0">Drop image here<br>or click to upload</p>
+    `;
+
+    // Make it clickable to trigger file upload
+    div.addEventListener('click', function() {
+        document.getElementById('imageUpload').click();
+    });
+
+    // Drag and drop handlers
+    div.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        div.classList.add('drag-over');
+    });
+
+    div.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        div.classList.remove('drag-over');
+    });
+
+    div.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        div.classList.remove('drag-over');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleImageUpload({ target: { files: files } });
+        }
+    });
+
+    return div;
 }
 
 function createFrameElement(frame, index) {
@@ -269,7 +302,7 @@ function handleDragEnd(e) {
 }
 
 // GIF Generation
-async function generatePreview() {
+async function generatePreview(maxFrames = 10) {
     if (state.frames.length === 0) {
         showToast('Add frames before generating', 'warning');
         return;
@@ -280,31 +313,62 @@ async function generatePreview() {
         stopPreview();
     }
 
-    const button = document.getElementById('generatePreview');
+    const isQuick = maxFrames !== null;
+    const previewButton = document.getElementById('generatePreview');
+    const quickButton = document.getElementById('generateQuickPreview');
+    const fullButton = document.getElementById('generateFullPreview');
     const statusDiv = document.getElementById('generationStatus');
 
-    button.disabled = true;
+    // Disable all preview buttons
+    previewButton.disabled = true;
+    quickButton.disabled = true;
+    fullButton.disabled = true;
+
+    // Determine which button was clicked
+    let button;
+    let statusMessage;
+
+    if (state.frames.length <= 10) {
+        // Single preview button mode
+        button = previewButton;
+        statusMessage = 'Generating preview...';
+    } else {
+        // Dual button mode
+        button = isQuick ? quickButton : fullButton;
+        statusMessage = isQuick
+            ? `Generating quick preview (up to ${maxFrames} frames)...`
+            : 'Generating full preview (all frames)...';
+    }
+
+    const originalHTML = button.innerHTML;
     button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
-    statusDiv.innerHTML = '<small class="text-muted">Generating preview (up to 10 frames)...</small>';
+    statusDiv.innerHTML = `<small class="text-muted">${statusMessage}</small>`;
 
     try {
         const dims = getScaledDimensions();
+        const requestBody = {
+            project: {
+                name: 'Animation',
+                settings: {
+                    ...state.settings,
+                    width: dims.width,
+                    height: dims.height
+                },
+                frames: state.frames
+            }
+        };
+
+        // Add maxFrames to request if it's a quick preview
+        if (isQuick) {
+            requestBody.maxFrames = maxFrames;
+        }
+
         const response = await fetch('/api/generate/preview', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                project: {
-                    name: 'Animation',
-                    settings: {
-                        ...state.settings,
-                        width: dims.width,
-                        height: dims.height
-                    },
-                    frames: state.frames
-                }
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const data = await response.json();
@@ -321,8 +385,17 @@ async function generatePreview() {
         showToast('Preview generation failed', 'danger');
         statusDiv.innerHTML = '<small class="text-danger">Generation failed</small>';
     } finally {
-        button.disabled = false;
-        button.innerHTML = '<i class="bi bi-lightning"></i> Preview';
+        button.innerHTML = originalHTML;
+
+        // Re-enable buttons based on current frame count
+        const hasFrames = state.frames.length > 0;
+        const dims = getScaledDimensions();
+        const hasDimensions = dims.width && dims.height;
+        const canGenerate = hasFrames && hasDimensions;
+
+        previewButton.disabled = !canGenerate;
+        quickButton.disabled = !canGenerate;
+        fullButton.disabled = !canGenerate;
     }
 }
 
@@ -423,6 +496,7 @@ function updateSettings() {
     state.settings.transparent = document.getElementById('transparent').checked;
     state.settings.backgroundColor = document.getElementById('backgroundColor').value;
     state.settings.alphaThreshold = parseInt(document.getElementById('alphaThreshold').value);
+    state.settings.transitionType = document.getElementById('transitionType').value;
     state.settings.transitionTime = parseInt(document.getElementById('transitionTime').value);
     state.settings.transitionSteps = parseInt(document.getElementById('transitionSteps').value);
     updateOutputSizeDisplay();
@@ -478,6 +552,9 @@ function updateUI() {
     document.getElementById('alphaThresholdValue').textContent = state.settings.alphaThreshold;
     updateTransparencyUI();
 
+    // Update transition settings
+    document.getElementById('transitionType').value = state.settings.transitionType;
+
     // Render frames
     renderFrames();
 
@@ -485,8 +562,29 @@ function updateUI() {
     const hasFrames = state.frames.length > 0;
     const dims = getScaledDimensions();
     const hasDimensions = dims.width && dims.height;
-    document.getElementById('generatePreview').disabled = !(hasFrames && hasDimensions);
-    document.getElementById('generateFull').disabled = !(hasFrames && hasDimensions);
+    const canGenerate = hasFrames && hasDimensions;
+
+    // Show single preview button if 10 or fewer frames, otherwise show both
+    const previewButton = document.getElementById('generatePreview');
+    const quickButton = document.getElementById('generateQuickPreview');
+    const fullButton = document.getElementById('generateFullPreview');
+
+    if (state.frames.length <= 10) {
+        // Show single preview button
+        previewButton.classList.remove('d-none');
+        quickButton.classList.add('d-none');
+        fullButton.classList.add('d-none');
+        previewButton.disabled = !canGenerate;
+    } else {
+        // Show quick and full preview buttons
+        previewButton.classList.add('d-none');
+        quickButton.classList.remove('d-none');
+        fullButton.classList.remove('d-none');
+        quickButton.disabled = !canGenerate;
+        fullButton.disabled = !canGenerate;
+    }
+
+    document.getElementById('generateFull').disabled = !canGenerate;
 }
 
 // Utility Functions

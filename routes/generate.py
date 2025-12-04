@@ -50,13 +50,16 @@ def generate_preview():
 
         output_path = output_dir / output_filename
 
-        # Build preview GIF (limited to 10 frames)
+        # Get max_frames from request, default to 10 if not specified
+        max_frames = data.get('maxFrames', 10)
+
+        # Build preview GIF
         success, message = current_app.gif_builder.create_preview_gif(
             project,
             output_path,
             current_app.session_manager,
             session['id'],
-            max_frames=10
+            max_frames=max_frames
         )
 
         if not success:

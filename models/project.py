@@ -33,7 +33,7 @@ class Project:
 
     def __init__(self, name, width=800, height=600, loop=0, default_duration=100,
                  transparent=False, background_color='#FFFFFF', alpha_threshold=128,
-                 transition_time=0, transition_steps=5):
+                 transition_type='crossfade', transition_time=0, transition_steps=5):
         self.name = name
         self.created = datetime.utcnow().isoformat()
         self.modified = datetime.utcnow().isoformat()
@@ -45,6 +45,7 @@ class Project:
             'transparent': transparent,
             'backgroundColor': background_color,
             'alphaThreshold': alpha_threshold,
+            'transitionType': transition_type,
             'transitionTime': transition_time,
             'transitionSteps': transition_steps
         }
@@ -107,6 +108,8 @@ class Project:
             self.settings['backgroundColor'] = str(kwargs['backgroundColor'])
         if 'alphaThreshold' in kwargs:
             self.settings['alphaThreshold'] = int(kwargs['alphaThreshold'])
+        if 'transitionType' in kwargs:
+            self.settings['transitionType'] = str(kwargs['transitionType'])
         if 'transitionTime' in kwargs:
             self.settings['transitionTime'] = int(kwargs['transitionTime'])
         if 'transitionSteps' in kwargs:
@@ -150,6 +153,7 @@ class Project:
             transparent=settings.get('transparent', False),
             background_color=settings.get('backgroundColor', '#FFFFFF'),
             alpha_threshold=settings.get('alphaThreshold', 128),
+            transition_type=settings.get('transitionType', 'crossfade'),
             transition_time=settings.get('transitionTime', 0),
             transition_steps=settings.get('transitionSteps', 5)
         )

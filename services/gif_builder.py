@@ -12,7 +12,7 @@ class GifBuilder:
         self.config = config
         self.image_processor = image_processor
 
-    def create_transition_frames(self, img1, img2, steps):
+    def create_crossfade_frames(self, img1, img2, steps):
         """
         Create transition frames between two images using linear cross-fade
 
@@ -43,6 +43,133 @@ class GifBuilder:
 
         return transition_frames
 
+    def create_fade_to_color_frames(self, img1, img2, steps, color):
+        """
+        Create transition frames that fade current image to a color, then fade in next image
+
+        Args:
+            img1: First image (current frame)
+            img2: Second image (next frame)
+            steps: Number of transition frames to create
+            color: RGB tuple for intermediate color (e.g., (255, 255, 255) for white)
+
+        Returns:
+            List of transition frame images
+        """
+        transition_frames = []
+
+        # Ensure both images are in RGBA mode
+        if img1.mode != 'RGBA':
+            img1 = img1.convert('RGBA')
+        if img2.mode != 'RGBA':
+            img2 = img2.convert('RGBA')
+
+        # Create solid color image
+        color_img = Image.new('RGBA', img1.size, color + (255,))
+
+        # First half: fade from img1 to color
+        half_steps = steps // 2
+        for i in range(1, half_steps + 1):
+            alpha = i / (half_steps + 1)
+            blended = Image.blend(img1, color_img, alpha)
+            transition_frames.append(blended)
+
+        # Second half: fade from color to img2
+        remaining_steps = steps - half_steps
+        for i in range(1, remaining_steps + 1):
+            alpha = i / (remaining_steps + 1)
+            blended = Image.blend(color_img, img2, alpha)
+            transition_frames.append(blended)
+
+        return transition_frames
+
+    def create_carousel_frames(self, img1, img2, steps, direction):
+        """
+        Create carousel transition frames where images slide in a direction
+
+        Args:
+            img1: First image (current frame)
+            img2: Second image (next frame)
+            steps: Number of transition frames to create
+            direction: 'left', 'right', 'up', or 'down'
+
+        Returns:
+            List of transition frame images
+        """
+        transition_frames = []
+
+        # Ensure both images are in RGBA mode
+        if img1.mode != 'RGBA':
+            img1 = img1.convert('RGBA')
+        if img2.mode != 'RGBA':
+            img2 = img2.convert('RGBA')
+
+        width, height = img1.size
+
+        for i in range(1, steps + 1):
+            # Calculate offset ratio
+            ratio = i / (steps + 1)
+
+            # Create new frame
+            frame = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+
+            if direction == 'left':
+                # img1 moves left (off screen), img2 comes from right
+                offset1 = int(-width * ratio)
+                offset2 = int(width * (1 - ratio))
+                frame.paste(img1, (offset1, 0))
+                frame.paste(img2, (offset2, 0))
+            elif direction == 'right':
+                # img1 moves right (off screen), img2 comes from left
+                offset1 = int(width * ratio)
+                offset2 = int(-width * (1 - ratio))
+                frame.paste(img1, (offset1, 0))
+                frame.paste(img2, (offset2, 0))
+            elif direction == 'up':
+                # img1 moves up (off screen), img2 comes from bottom
+                offset1 = int(-height * ratio)
+                offset2 = int(height * (1 - ratio))
+                frame.paste(img1, (0, offset1))
+                frame.paste(img2, (0, offset2))
+            elif direction == 'down':
+                # img1 moves down (off screen), img2 comes from top
+                offset1 = int(height * ratio)
+                offset2 = int(-height * (1 - ratio))
+                frame.paste(img1, (0, offset1))
+                frame.paste(img2, (0, offset2))
+
+            transition_frames.append(frame)
+
+        return transition_frames
+
+    def create_transition_frames(self, img1, img2, steps, transition_type):
+        """
+        Create transition frames between two images based on transition type
+
+        Args:
+            img1: First image (current frame)
+            img2: Second image (next frame)
+            steps: Number of transition frames to create
+            transition_type: Type of transition ('crossfade', 'fade-to-white', 'fade-to-black',
+                           'carousel-left', 'carousel-right', 'carousel-up', 'carousel-down')
+
+        Returns:
+            List of transition frame images
+        """
+        if transition_type == 'crossfade':
+            return self.create_crossfade_frames(img1, img2, steps)
+        elif transition_type == 'fade-to-white':
+            return self.create_fade_to_color_frames(img1, img2, steps, (255, 255, 255))
+        elif transition_type == 'fade-to-black':
+            return self.create_fade_to_color_frames(img1, img2, steps, (0, 0, 0))
+        elif transition_type.startswith('carousel-'):
+            direction = transition_type.split('-')[1]
+            return self.create_carousel_frames(img1, img2, steps, direction)
+        else:
+            # Default to crossfade for unknown types
+            logger.warning(f"Unknown transition type '{transition_type}', defaulting to crossfade")
+            return self.create_crossfade_frames(img1, img2, steps)
+
     def build_gif(self, project, output_path, session_manager, session_id):
         """
         Build a GIF from a project
@@ -72,6 +199,7 @@ class GifBuilder:
             transparent = project.settings.get('transparent', False)
             background_color = project.settings.get('backgroundColor', '#FFFFFF')
             alpha_threshold = project.settings.get('alphaThreshold', 128)
+            transition_type = project.settings.get('transitionType', 'crossfade')
             transition_time = project.settings.get('transitionTime', 0)
             transition_steps = project.settings.get('transitionSteps', 5)
 
@@ -152,7 +280,8 @@ class GifBuilder:
                     transition_frames = self.create_transition_frames(
                         current_frame,
                         next_frame,
-                        transition_steps
+                        transition_steps,
+                        transition_type
                     )
 
                     # Duration per transition frame
@@ -236,6 +365,7 @@ class GifBuilder:
                 transparent=project.settings.get('transparent', False),
                 background_color=project.settings.get('backgroundColor', '#FFFFFF'),
                 alpha_threshold=project.settings.get('alphaThreshold', 128),
+                transition_type=project.settings.get('transitionType', 'crossfade'),
                 transition_time=project.settings.get('transitionTime', 0),
                 transition_steps=project.settings.get('transitionSteps', 5)
             )

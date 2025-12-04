@@ -4,14 +4,21 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 
 ## Features
 
-- **Image Upload**: Support for PNG, JPEG, GIF, and WebP formats
+- **Image Upload**: Support for PNG, JPEG, GIF, and WebP formats with always-visible drag-drop target
 - **Frame Management**: Add, remove, and reorder frames with drag-and-drop
 - **Auto-Detect Dimensions**: Output size automatically set from first uploaded image
 - **Auto-Detect Transparency**: Transparency mode enabled automatically if first image has alpha channel
 - **Scale Control**: Scale output from 10% to 100% of original dimensions
 - **Transparency Support**: Create GIFs with transparent backgrounds
-- **Cross-Fade Transitions**: Smooth transitions between frames with configurable timing and steps
-- **Live Preview**: Generate quick previews before final export
+- **Multiple Transition Types**:
+  - Cross-fade (smooth blend between images)
+  - Fade to White/Black (fade through intermediate color)
+  - Carousel (slide in four directions: Left, Right, Up, Down)
+  - Configurable timing and steps for all transitions
+- **Tabbed Settings UI**: Organized into Size, Transparency, and Transitions tabs
+- **Intelligent Preview System**:
+  - Single "Preview" button for projects with 10 or fewer frames
+  - Separate "Quick Preview" and "Full Preview" buttons for larger projects
 - **Auto-Download**: Generated GIFs download automatically
 - **Multi-User Safe**: Session-based isolation with automatic cleanup
 - **Rate Limiting**: Built-in protection against abuse
@@ -52,18 +59,24 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 
 ## Usage
 
-1. **Upload Images**: Click "Upload Images" to select one or more image files
+1. **Upload Images**: Click the "Add Image" placeholder or drag and drop images onto it to upload one or more image files
 2. **Arrange Frames**: Drag and drop frames to reorder them
 3. **Adjust Timing**: Set the duration (in milliseconds) for each frame
-4. **Configure Settings**:
-   - **Output Scale**: Choose from 10% to 100% of original image size
-   - **Loop Count**: 0 for infinite loop, or specify a number of plays
-   - **Transparent GIF**: Enable for transparency support
-   - **Background Color**: Fill color for non-transparent GIFs
-   - **Alpha Threshold**: Pixels below this opacity become transparent
-   - **Transition Time**: Cross-fade duration in milliseconds (0 = no transitions)
-   - **Transition Steps**: Number of intermediate frames in cross-fade
-5. **Preview**: Quick preview with up to 10 frames (auto-stops previous preview)
+4. **Configure Settings** (organized in tabs):
+   - **Size Tab**:
+     - **Output Scale**: Choose from 10% to 100% of original image size
+     - **Loop Count**: 0 for infinite loop, or specify a number of plays
+   - **Transparency Tab**:
+     - **Transparent GIF**: Enable for transparency support
+     - **Background Color**: Fill color for non-transparent GIFs
+     - **Alpha Threshold**: Pixels below this opacity become transparent
+   - **Transitions Tab**:
+     - **Transition Type**: Choose Cross-fade, Fade to White/Black, or Carousel (Left/Right/Up/Down)
+     - **Transition Time**: Transition duration in milliseconds (0 = no transitions)
+     - **Transition Steps**: Number of intermediate frames in transition
+5. **Preview**:
+   - **10 or fewer frames**: Single "Preview" button generates all frames
+   - **More than 10 frames**: "Quick Preview" (first 10 frames) or "Full Preview" (all frames)
 6. **Stop**: Stop the preview animation
 7. **Generate GIF**: Create and automatically download the final animated GIF
 

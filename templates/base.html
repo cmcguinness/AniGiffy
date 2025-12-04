@@ -47,7 +47,7 @@
                 </div>
                 <div class="modal-body">
                     <h6 class="fw-bold"><i class="bi bi-1-circle"></i> Upload Images</h6>
-                    <p>Click <strong>Upload Images</strong> to select one or more image files. Supported formats: PNG, JPEG, GIF, and WebP. The output dimensions are automatically set from the first image you upload. If the first image has transparency, the Transparent GIF option is enabled automatically.</p>
+                    <p>Click the <strong>"Add Image"</strong> placeholder or drag and drop images directly onto it. Supported formats: PNG, JPEG, GIF, and WebP. The output dimensions are automatically set from the first image you upload. If the first image has transparency, the Transparent GIF option is enabled automatically.</p>
 
                     <h6 class="fw-bold"><i class="bi bi-2-circle"></i> Arrange Frames</h6>
                     <p><strong>Drag and drop</strong> frames in the list to reorder them. Click the <i class="bi bi-trash text-danger"></i> icon to remove a frame.</p>
@@ -58,8 +58,12 @@
                     <hr>
 
                     <h6 class="fw-bold"><i class="bi bi-gear"></i> Settings</h6>
+                    <p class="small text-muted mb-2">Settings are organized into three tabs: <strong>Size</strong>, <strong>Transparency</strong>, and <strong>Transitions</strong>.</p>
                     <table class="table table-sm">
                         <tbody>
+                            <tr>
+                                <td colspan="2" class="bg-light"><strong>Size Tab</strong></td>
+                            </tr>
                             <tr>
                                 <td><strong>Output Scale</strong></td>
                                 <td>Scale the output GIF from 10% to 100% of the original image size. Smaller scales create smaller file sizes.</td>
@@ -71,6 +75,9 @@
                             <tr>
                                 <td><strong>Loop Count</strong></td>
                                 <td>Set to <code>0</code> for infinite looping, or enter a number for a specific number of plays.</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="bg-light"><strong>Transparency Tab</strong></td>
                             </tr>
                             <tr>
                                 <td><strong>Transparent GIF</strong></td>
@@ -85,20 +92,32 @@
                                 <td>When transparency is enabled, pixels with opacity below this value (0-255) become fully transparent.</td>
                             </tr>
                             <tr>
+                                <td colspan="2" class="bg-light"><strong>Transitions Tab</strong></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Transition Type</strong></td>
+                                <td>Choose from: <strong>Cross-fade</strong> (blend between images), <strong>Fade to White/Black</strong> (fade through intermediate color), or <strong>Carousel</strong> (slide in Left/Right/Up/Down directions).</td>
+                            </tr>
+                            <tr>
                                 <td><strong>Transition Time</strong></td>
-                                <td>Duration of cross-fade transition between frames in milliseconds. Set to 0 to disable transitions. Must be less than frame duration.</td>
+                                <td>Duration of transition between frames in milliseconds. Set to 0 to disable transitions. Must be less than frame duration.</td>
                             </tr>
                             <tr>
                                 <td><strong>Transition Steps</strong></td>
-                                <td>Number of intermediate frames created during cross-fade. More steps = smoother transition but larger file size.</td>
+                                <td>Number of intermediate frames created during transitions. More steps = smoother transition but larger file size.</td>
                             </tr>
                         </tbody>
                     </table>
 
                     <hr>
 
-                    <h6 class="fw-bold"><i class="bi bi-lightning"></i> Preview</h6>
-                    <p>Creates a quick preview using up to 10 frames. Use this to check your animation before generating the final GIF. Automatically stops any previous preview.</p>
+                    <h6 class="fw-bold"><i class="bi bi-eye"></i> Preview</h6>
+                    <p>Preview your animation before generating the final GIF. The UI intelligently adapts:</p>
+                    <ul class="small">
+                        <li><strong>10 or fewer frames</strong>: Shows a single "Preview" button that generates all frames</li>
+                        <li><strong>More than 10 frames</strong>: Shows "Quick Preview" (⚡ first 10 frames) and "Full Preview" (👁 all frames) buttons</li>
+                    </ul>
+                    <p class="small">Automatically stops any previous preview when you generate a new one.</p>
 
                     <h6 class="fw-bold"><i class="bi bi-stop-circle"></i> Stop</h6>
                     <p>Stops the preview animation and clears the preview area. Useful if the animation timing is distracting.</p>

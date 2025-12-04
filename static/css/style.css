@@ -72,6 +72,45 @@ body {
     color: #bb2d3b;
 }
 
+/* Add Image Placeholder */
+.add-image-placeholder {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 30px 10px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-image-placeholder:hover {
+    border-color: #0d6efd;
+    background-color: #e7f3ff;
+}
+
+.add-image-placeholder.drag-over {
+    border-color: #0d6efd;
+    background-color: #e7f3ff;
+    border-width: 3px;
+}
+
+.add-image-placeholder i {
+    font-size: 2rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+.add-image-placeholder:hover i {
+    color: #0d6efd;
+}
+
+.add-image-placeholder p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 8px;
+}
+
 /* Preview Container */
 .preview-container {
     min-height: 200px;

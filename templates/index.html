@@ -11,21 +11,11 @@
                 </h5>
             </div>
             <div class="card-body" id="dropZone">
-                <!-- Upload Button -->
-                <div class="mb-3">
-                    <input type="file" id="imageUpload" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
-                    <button id="uploadButton" class="btn btn-primary w-100">
-                        <i class="bi bi-upload"></i> Upload Images
-                    </button>
-                </div>
+                <!-- Hidden file input -->
+                <input type="file" id="imageUpload" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
 
                 <!-- Frame List -->
-                <div id="frameList" class="frame-list">
-                    <div class="text-center text-muted py-5" id="emptyFrameMessage">
-                        <i class="bi bi-card-image" style="font-size: 3rem;"></i>
-                        <p class="mt-2">No frames yet.<br>Upload images to get started.</p>
-                    </div>
-                </div>
+                <div id="frameList" class="frame-list"></div>
             </div>
         </div>
     </div>
@@ -48,8 +38,14 @@
                     <img id="previewImage" class="d-none" style="max-width: 100%; max-height: 400px;">
                 </div>
                 <div class="mt-3">
-                    <button id="generatePreview" class="btn btn-info" disabled>
-                        <i class="bi bi-lightning"></i> Preview
+                    <button id="generatePreview" class="btn btn-info d-none" disabled>
+                        <i class="bi bi-eye"></i> Preview
+                    </button>
+                    <button id="generateQuickPreview" class="btn btn-info d-none" disabled>
+                        <i class="bi bi-lightning"></i> Quick Preview
+                    </button>
+                    <button id="generateFullPreview" class="btn btn-info d-none" disabled>
+                        <i class="bi bi-eye"></i> Full Preview
                     </button>
                     <button id="stopPreview" class="btn btn-outline-danger d-none">
                         <i class="bi bi-stop-circle"></i> Stop
@@ -70,56 +66,101 @@
                 </h5>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="scale" class="form-label">Output Scale</label>
-                        <select class="form-select" id="scale">
-                            <option value="100">100%</option>
-                            <option value="75">75%</option>
-                            <option value="66">66%</option>
-                            <option value="50">50%</option>
-                            <option value="33">33%</option>
-                            <option value="25">25%</option>
-                            <option value="10">10%</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Output Size</label>
-                        <div class="form-control-plaintext" id="outputSize">-</div>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="loop" class="form-label">Loop Count</label>
-                        <input type="number" class="form-control" id="loop" value="0" min="0">
-                        <small class="form-text text-muted">0 = infinite</small>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <div class="form-check form-switch mt-4">
-                            <input class="form-check-input" type="checkbox" id="transparent">
-                            <label class="form-check-label" for="transparent">Transparent GIF</label>
+                <!-- Tabs Navigation -->
+                <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="size-tab" data-bs-toggle="tab" data-bs-target="#size" type="button" role="tab" aria-controls="size" aria-selected="true">
+                            <i class="bi bi-arrows-fullscreen"></i> Size
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="transparency-tab" data-bs-toggle="tab" data-bs-target="#transparency" type="button" role="tab" aria-controls="transparency" aria-selected="false">
+                            <i class="bi bi-transparency"></i> Transparency
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="transitions-tab" data-bs-toggle="tab" data-bs-target="#transitions" type="button" role="tab" aria-controls="transitions" aria-selected="false">
+                            <i class="bi bi-arrow-left-right"></i> Transitions
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tabs Content -->
+                <div class="tab-content mt-3" id="settingsTabContent">
+                    <!-- Size Tab -->
+                    <div class="tab-pane fade show active" id="size" role="tabpanel" aria-labelledby="size-tab">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="scale" class="form-label">Output Scale</label>
+                                <select class="form-select" id="scale">
+                                    <option value="100">100%</option>
+                                    <option value="75">75%</option>
+                                    <option value="66">66%</option>
+                                    <option value="50">50%</option>
+                                    <option value="33">33%</option>
+                                    <option value="25">25%</option>
+                                    <option value="10">10%</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Output Size</label>
+                                <div class="form-control-plaintext" id="outputSize">-</div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="loop" class="form-label">Loop Count</label>
+                                <input type="number" class="form-control" id="loop" value="0" min="0">
+                                <small class="form-text text-muted">0 = infinite</small>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3" id="backgroundColorGroup">
-                        <label for="backgroundColor" class="form-label">Background Color</label>
-                        <input type="color" class="form-control form-control-color w-100" id="backgroundColor" value="#FFFFFF">
+
+                    <!-- Transparency Tab -->
+                    <div class="tab-pane fade" id="transparency" role="tabpanel" aria-labelledby="transparency-tab">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="transparent">
+                                    <label class="form-check-label" for="transparent">Transparent GIF</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3" id="backgroundColorGroup">
+                                <label for="backgroundColor" class="form-label">Background Color</label>
+                                <input type="color" class="form-control form-control-color w-100" id="backgroundColor" value="#FFFFFF">
+                            </div>
+                            <div class="col-md-4 mb-3 d-none" id="alphaThresholdGroup">
+                                <label for="alphaThreshold" class="form-label">Alpha Threshold: <span id="alphaThresholdValue">128</span></label>
+                                <input type="range" class="form-range" id="alphaThreshold" min="0" max="255" value="128">
+                                <small class="form-text text-muted">Pixels below this become transparent</small>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-4 mb-3 d-none" id="alphaThresholdGroup">
-                        <label for="alphaThreshold" class="form-label">Alpha Threshold: <span id="alphaThresholdValue">128</span></label>
-                        <input type="range" class="form-range" id="alphaThreshold" min="0" max="255" value="128">
-                        <small class="form-text text-muted">Pixels below this become transparent</small>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="transitionTime" class="form-label">Transition Time (ms)</label>
-                        <input type="number" class="form-control" id="transitionTime" value="0" min="0">
-                        <small class="form-text text-muted">Cross-fade duration, 0 = no transition</small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="transitionSteps" class="form-label">Transition Steps</label>
-                        <input type="number" class="form-control" id="transitionSteps" value="5" min="1">
-                        <small class="form-text text-muted">Number of frames in cross-fade</small>
+
+                    <!-- Transitions Tab -->
+                    <div class="tab-pane fade" id="transitions" role="tabpanel" aria-labelledby="transitions-tab">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="transitionType" class="form-label">Transition Type</label>
+                                <select class="form-select" id="transitionType">
+                                    <option value="crossfade">Cross-fade</option>
+                                    <option value="fade-to-white">Fade to White</option>
+                                    <option value="fade-to-black">Fade to Black</option>
+                                    <option value="carousel-left">Carousel Left</option>
+                                    <option value="carousel-right">Carousel Right</option>
+                                    <option value="carousel-up">Carousel Up</option>
+                                    <option value="carousel-down">Carousel Down</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="transitionTime" class="form-label">Transition Time (ms)</label>
+                                <input type="number" class="form-control" id="transitionTime" value="0" min="0">
+                                <small class="form-text text-muted">Duration, 0 = no transition</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="transitionSteps" class="form-label">Transition Steps</label>
+                                <input type="number" class="form-control" id="transitionSteps" value="5" min="1">
+                                <small class="form-text text-muted">Number of frames in transition</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
