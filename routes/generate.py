@@ -41,8 +41,14 @@ def generate_preview():
                 'message': ', '.join(errors)
             }), 400
 
+        # Determine output format
+        output_format = project.settings.get('outputFormat', 'gif')
+        if output_format not in ('gif', 'apng'):
+            output_format = 'gif'
+        ext = '.png' if output_format == 'apng' else '.gif'
+
         # Generate output filename
-        output_filename = f"preview_{uuid.uuid4().hex[:8]}.gif"
+        output_filename = f"preview_{uuid.uuid4().hex[:8]}{ext}"
 
         # Create output directory
         output_dir = current_app.session_manager.safe_path(session['id'], 'output')
@@ -53,13 +59,14 @@ def generate_preview():
         # Get max_frames from request, default to 10 if not specified
         max_frames = data.get('maxFrames', 10)
 
-        # Build preview GIF
+        # Build preview
         success, message = current_app.gif_builder.create_preview_gif(
             project,
             output_path,
             current_app.session_manager,
             session['id'],
-            max_frames=max_frames
+            max_frames=max_frames,
+            output_format=output_format
         )
 
         if not success:
@@ -117,9 +124,15 @@ def generate_full():
                 'message': ', '.join(errors)
             }), 400
 
+        # Determine output format
+        output_format = project.settings.get('outputFormat', 'gif')
+        if output_format not in ('gif', 'apng'):
+            output_format = 'gif'
+        ext = '.png' if output_format == 'apng' else '.gif'
+
         # Generate output filename
         safe_name = secure_filename(project.name) or 'animation'
-        output_filename = f"{safe_name}_{uuid.uuid4().hex[:8]}.gif"
+        output_filename = f"{safe_name}_{uuid.uuid4().hex[:8]}{ext}"
 
         # Create output directory
         output_dir = current_app.session_manager.safe_path(session['id'], 'output')
@@ -127,12 +140,13 @@ def generate_full():
 
         output_path = output_dir / output_filename
 
-        # Build GIF
+        # Build animation
         success, message, file_size = current_app.gif_builder.build_gif(
             project,
             output_path,
             current_app.session_manager,
-            session['id']
+            session['id'],
+            output_format=output_format
         )
 
         if not success:
@@ -161,7 +175,7 @@ def generate_full():
 
 @bp.route('/file/<filename>', methods=['GET'])
 def get_file(filename):
-    """Serve a generated GIF file"""
+    """Serve a generated animation file (GIF or APNG)"""
     try:
         # Secure filename
         filename = secure_filename(filename)
@@ -172,12 +186,14 @@ def get_file(filename):
         if not file_path.exists():
             return jsonify({
                 'error': 'File not found',
-                'message': f'GIF file does not exist: {filename}'
+                'message': f'File does not exist: {filename}'
             }), 404
+
+        mimetype = 'image/png' if filename.endswith('.png') else 'image/gif'
 
         return send_file(
             file_path,
-            mimetype='image/gif',
+            mimetype=mimetype,
             as_attachment=False,
             download_name=filename
         )
@@ -192,7 +208,7 @@ def get_file(filename):
 
 @bp.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
-    """Download a generated GIF file"""
+    """Download a generated animation file (GIF or APNG)"""
     try:
         # Secure filename
         filename = secure_filename(filename)
@@ -203,12 +219,14 @@ def download_file(filename):
         if not file_path.exists():
             return jsonify({
                 'error': 'File not found',
-                'message': f'GIF file does not exist: {filename}'
+                'message': f'File does not exist: {filename}'
             }), 404
+
+        mimetype = 'image/png' if filename.endswith('.png') else 'image/gif'
 
         return send_file(
             file_path,
-            mimetype='image/gif',
+            mimetype=mimetype,
             as_attachment=True,
             download_name=filename
         )
@@ -231,8 +249,8 @@ def list_outputs():
             return jsonify({'gifs': []}), 200
 
         gifs = []
-        for file_path in output_dir.glob('*.gif'):
-            if file_path.is_file():
+        for file_path in sorted(output_dir.iterdir()):
+            if file_path.is_file() and file_path.suffix in ('.gif', '.png'):
                 file_size = file_path.stat().st_size
                 modified = file_path.stat().st_mtime
 

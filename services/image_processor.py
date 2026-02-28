@@ -131,7 +131,8 @@ class ImageProcessor:
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
     def prepare_frame(self, file_path, target_width, target_height,
-                      transparent=False, background_color='#FFFFFF', alpha_threshold=128):
+                      transparent=False, background_color='#FFFFFF', alpha_threshold=128,
+                      binarize_alpha=True):
         """
         Load and prepare a frame for GIF creation
 
@@ -165,20 +166,21 @@ class ImageProcessor:
             img = img.convert('RGBA')
 
         if transparent:
-            # Convert semi-transparent pixels based on threshold
-            # GIF only supports 1-bit transparency (fully transparent or fully opaque)
-            pixels = img.load()
-            width, height = img.size
+            if binarize_alpha:
+                # Convert semi-transparent pixels based on threshold
+                # GIF only supports 1-bit transparency (fully transparent or fully opaque)
+                pixels = img.load()
+                width, height = img.size
 
-            for y in range(height):
-                for x in range(width):
-                    r, g, b, a = pixels[x, y]
-                    if a < alpha_threshold:
-                        # Make fully transparent
-                        pixels[x, y] = (0, 0, 0, 0)
-                    else:
-                        # Make fully opaque
-                        pixels[x, y] = (r, g, b, 255)
+                for y in range(height):
+                    for x in range(width):
+                        r, g, b, a = pixels[x, y]
+                        if a < alpha_threshold:
+                            # Make fully transparent
+                            pixels[x, y] = (0, 0, 0, 0)
+                        else:
+                            # Make fully opaque
+                            pixels[x, y] = (r, g, b, 255)
 
             return img
         else:

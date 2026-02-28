@@ -5,14 +5,18 @@
     <!-- Left Panel - Frame List -->
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header bg-secondary text-white">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="bi bi-images"></i> Frames
                 </h5>
+                <button id="importVideoBtn" class="btn btn-sm btn-outline-light" title="Import frames from a video file">
+                    <i class="bi bi-camera-video"></i> Import Video
+                </button>
             </div>
             <div class="card-body" id="dropZone">
-                <!-- Hidden file input -->
+                <!-- Hidden file inputs -->
                 <input type="file" id="imageUpload" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+                <input type="file" id="videoUpload" class="d-none" accept=".mp4,.mov">
 
                 <!-- Frame List -->
                 <div id="frameList" class="frame-list"></div>
@@ -91,6 +95,13 @@
                     <div class="tab-pane fade show active" id="size" role="tabpanel" aria-labelledby="size-tab">
                         <div class="row">
                             <div class="col-md-4 mb-3">
+                                <label for="outputFormat" class="form-label">Format</label>
+                                <select class="form-select" id="outputFormat">
+                                    <option value="gif">GIF</option>
+                                    <option value="apng">Animated PNG</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
                                 <label for="scale" class="form-label">Output Scale</label>
                                 <select class="form-select" id="scale">
                                     <option value="100">100%</option>
@@ -163,6 +174,66 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Video Import Modal -->
+<div class="modal fade" id="videoImportModal" tabindex="-1" aria-labelledby="videoImportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="videoImportModalLabel"><i class="bi bi-camera-video"></i> Import Video</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="videoError" class="alert alert-danger d-none"></div>
+
+                <div id="videoInfo" class="d-none">
+                    <table class="table table-sm mb-3">
+                        <tbody>
+                            <tr><th>File</th><td id="videoFilename">-</td></tr>
+                            <tr><th>Duration</th><td id="videoDuration">-</td></tr>
+                            <tr><th>Resolution</th><td id="videoResolution">-</td></tr>
+                            <tr><th>Native FPS</th><td id="videoFps">-</td></tr>
+                            <tr><th>Codec</th><td id="videoCodec">-</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="mb-3">
+                        <label for="extractFps" class="form-label">Extract at FPS</label>
+                        <select class="form-select" id="extractFps">
+                            <option value="1">1 fps</option>
+                            <option value="2">2 fps</option>
+                            <option value="5" selected>5 fps</option>
+                            <option value="10">10 fps</option>
+                            <option value="15">15 fps</option>
+                            <option value="24">24 fps</option>
+                            <option value="30">30 fps</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <span class="text-muted">Estimated frames:</span>
+                        <strong id="estimatedFrames">-</strong>
+                        <span id="frameQuotaWarning" class="text-danger d-none ms-2">
+                            <i class="bi bi-exclamation-triangle"></i> Exceeds remaining quota
+                        </span>
+                    </div>
+                </div>
+
+                <div id="videoUploadProgress" class="d-none mb-3">
+                    <small class="text-muted" id="videoProgressLabel">Uploading video...</small>
+                    <div class="progress mt-1">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="extractFramesBtn" class="btn btn-primary d-none" disabled>
+                    <i class="bi bi-scissors"></i> Extract Frames
+                </button>
             </div>
         </div>
     </div>

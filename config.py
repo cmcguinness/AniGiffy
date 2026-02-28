@@ -20,11 +20,13 @@ class Config:
     QUOTAS = {
         'max_upload_size': 25 * 1024 * 1024,  # 25MB per image (modern phone photos)
         'max_total_storage': 200 * 1024 * 1024,  # 200MB total per session
-        'max_images': 50,  # Max images per project
+        'max_images': 200,  # Max images per project
         'max_frames': 200,  # Max frames in animation
-        'max_output_size': 50 * 1024 * 1024,  # 50MB max GIF
+        'max_output_size': 200 * 1024 * 1024,  # 200MB max output
         'max_dimension': 4096,  # Max width/height (4K resolution)
         'max_projects': 10,  # Max projects per session
+        'max_video_size': 100 * 1024 * 1024,  # 100MB per video upload
+        'max_video_duration': 120,  # seconds
     }
 
     # Rate limiting (requests per time period)
@@ -33,6 +35,7 @@ class Config:
         'generate': '5 per minute, 20 per hour',
         'save_project': '30 per minute',
         'general_api': '100 per minute',
+        'video_upload': '3 per minute, 10 per hour',
     }
 
     # Cleanup settings
@@ -50,6 +53,10 @@ class Config:
         'image/gif',
         'image/webp'
     }
+
+    # Video file types
+    ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov'}
+    ALLOWED_VIDEO_MIMETYPES = {'video/mp4', 'video/quicktime'}
 
 class DevelopmentConfig(Config):
     DEBUG = True

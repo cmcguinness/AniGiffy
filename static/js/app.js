@@ -13,7 +13,8 @@ const state = {
         alphaThreshold: 128,
         transitionType: 'crossfade',
         transitionTime: 0,
-        transitionSteps: 5
+        transitionSteps: 5,
+        outputFormat: 'gif'
     },
     frames: [],
     currentPreview: null
@@ -75,6 +76,7 @@ function initializeEventListeners() {
     document.getElementById('stopPreview').addEventListener('click', stopPreview);
 
     // Settings inputs
+    document.getElementById('outputFormat').addEventListener('change', updateSettings);
     document.getElementById('scale').addEventListener('change', updateSettings);
     document.getElementById('loop').addEventListener('change', updateSettings);
 
@@ -87,6 +89,14 @@ function initializeEventListeners() {
     document.getElementById('transitionType').addEventListener('change', updateSettings);
     document.getElementById('transitionTime').addEventListener('change', updateSettings);
     document.getElementById('transitionSteps').addEventListener('change', updateSettings);
+
+    // Video import
+    document.getElementById('importVideoBtn').addEventListener('click', () => {
+        document.getElementById('videoUpload').click();
+    });
+    document.getElementById('videoUpload').addEventListener('change', handleVideoSelect);
+    document.getElementById('extractFps').addEventListener('change', updateEstimatedFrames);
+    document.getElementById('extractFramesBtn').addEventListener('click', handleVideoExtract);
 }
 
 // Image Upload
@@ -409,8 +419,9 @@ async function generateFullGIF() {
     const statusDiv = document.getElementById('generationStatus');
 
     button.disabled = true;
+    const fmtLabel = state.settings.outputFormat === 'apng' ? 'APNG' : 'GIF';
     button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
-    statusDiv.innerHTML = '<small class="text-muted">Generating full GIF...</small>';
+    statusDiv.innerHTML = `<small class="text-muted">Generating full ${fmtLabel}...</small>`;
 
     try {
         const dims = getScaledDimensions();
@@ -456,7 +467,8 @@ async function generateFullGIF() {
         statusDiv.innerHTML = '<small class="text-danger">Generation failed</small>';
     } finally {
         button.disabled = false;
-        button.innerHTML = '<i class="bi bi-download"></i> Generate GIF';
+        const fmt = state.settings.outputFormat === 'apng' ? 'APNG' : 'GIF';
+        button.innerHTML = `<i class="bi bi-download"></i> Generate ${fmt}`;
     }
 }
 
@@ -491,6 +503,7 @@ function stopPreview() {
 
 // Settings Updates
 function updateSettings() {
+    state.settings.outputFormat = document.getElementById('outputFormat').value;
     state.settings.scale = parseInt(document.getElementById('scale').value);
     state.settings.loop = parseInt(document.getElementById('loop').value);
     state.settings.transparent = document.getElementById('transparent').checked;
@@ -500,6 +513,15 @@ function updateSettings() {
     state.settings.transitionTime = parseInt(document.getElementById('transitionTime').value);
     state.settings.transitionSteps = parseInt(document.getElementById('transitionSteps').value);
     updateOutputSizeDisplay();
+    updateGenerateButtonLabel();
+}
+
+function updateGenerateButtonLabel() {
+    const fmt = state.settings.outputFormat === 'apng' ? 'APNG' : 'GIF';
+    const btn = document.getElementById('generateFull');
+    if (!btn.querySelector('.spinner-border')) {
+        btn.innerHTML = `<i class="bi bi-download"></i> Generate ${fmt}`;
+    }
 }
 
 function updateOutputSizeDisplay() {
@@ -541,9 +563,11 @@ function updateTransparencyUI() {
 // UI Updates
 function updateUI() {
     // Update form inputs
+    document.getElementById('outputFormat').value = state.settings.outputFormat;
     document.getElementById('scale').value = state.settings.scale;
     document.getElementById('loop').value = state.settings.loop;
     updateOutputSizeDisplay();
+    updateGenerateButtonLabel();
 
     // Update transparency settings
     document.getElementById('transparent').checked = state.settings.transparent;
@@ -613,6 +637,173 @@ function showToast(message, type = 'info') {
     toastElement.addEventListener('hidden.bs.toast', function() {
         toastElement.remove();
     });
+}
+
+// ── Video Import ──
+
+// Temporary state for the video import modal
+let videoImportState = {
+    filename: null,
+    duration: 0,
+    width: 0,
+    height: 0,
+    fps: 0,
+    remainingSlots: 50,
+};
+
+async function handleVideoSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('videoImportModal'));
+    const errorEl = document.getElementById('videoError');
+    const infoEl = document.getElementById('videoInfo');
+    const progressEl = document.getElementById('videoUploadProgress');
+    const progressLabel = document.getElementById('videoProgressLabel');
+    const extractBtn = document.getElementById('extractFramesBtn');
+
+    // Reset modal state
+    errorEl.classList.add('d-none');
+    infoEl.classList.add('d-none');
+    extractBtn.classList.add('d-none');
+    extractBtn.disabled = true;
+    progressEl.classList.remove('d-none');
+    progressLabel.textContent = 'Uploading video...';
+    modal.show();
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/video/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        progressEl.classList.add('d-none');
+
+        if (!response.ok) {
+            errorEl.textContent = data.message || data.error || 'Upload failed';
+            errorEl.classList.remove('d-none');
+            return;
+        }
+
+        // Populate modal info
+        videoImportState.filename = data.filename;
+        videoImportState.duration = data.duration;
+        videoImportState.width = data.width;
+        videoImportState.height = data.height;
+        videoImportState.fps = data.fps;
+        videoImportState.remainingSlots = data.remainingSlots;
+
+        document.getElementById('videoFilename').textContent = file.name;
+        document.getElementById('videoDuration').textContent = data.duration.toFixed(1) + 's';
+        document.getElementById('videoResolution').textContent = `${data.width} x ${data.height}`;
+        document.getElementById('videoFps').textContent = data.fps.toFixed(1);
+        document.getElementById('videoCodec').textContent = data.codec;
+
+        infoEl.classList.remove('d-none');
+        extractBtn.classList.remove('d-none');
+        updateEstimatedFrames();
+
+    } catch (err) {
+        progressEl.classList.add('d-none');
+        errorEl.textContent = 'Network error uploading video';
+        errorEl.classList.remove('d-none');
+        console.error('Video upload error:', err);
+    }
+}
+
+function updateEstimatedFrames() {
+    const fps = parseFloat(document.getElementById('extractFps').value);
+    const count = Math.ceil(videoImportState.duration * fps);
+    document.getElementById('estimatedFrames').textContent = count;
+
+    // Check quota using server-provided remaining slots
+    const remaining = videoImportState.remainingSlots;
+    const warning = document.getElementById('frameQuotaWarning');
+    const extractBtn = document.getElementById('extractFramesBtn');
+
+    if (count > remaining) {
+        warning.classList.remove('d-none');
+        extractBtn.disabled = true;
+    } else {
+        warning.classList.add('d-none');
+        extractBtn.disabled = false;
+    }
+}
+
+async function handleVideoExtract() {
+    const extractBtn = document.getElementById('extractFramesBtn');
+    const progressEl = document.getElementById('videoUploadProgress');
+    const progressLabel = document.getElementById('videoProgressLabel');
+    const errorEl = document.getElementById('videoError');
+
+    extractBtn.disabled = true;
+    const originalHTML = extractBtn.innerHTML;
+    extractBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Extracting...';
+    progressEl.classList.remove('d-none');
+    progressLabel.textContent = 'Extracting frames (this may take a moment)...';
+    errorEl.classList.add('d-none');
+
+    try {
+        const fps = parseFloat(document.getElementById('extractFps').value);
+        const response = await fetch('/api/video/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filename: videoImportState.filename,
+                fps: fps
+            })
+        });
+
+        const data = await response.json();
+        progressEl.classList.add('d-none');
+
+        if (!response.ok) {
+            errorEl.textContent = data.message || data.error || 'Extraction failed';
+            errorEl.classList.remove('d-none');
+            extractBtn.innerHTML = originalHTML;
+            extractBtn.disabled = false;
+            return;
+        }
+
+        // Set dimensions from first frame if not already set
+        if (data.frames.length > 0 &&
+            (state.settings.originalWidth === null || state.settings.originalHeight === null)) {
+            state.settings.originalWidth = data.frames[0].width;
+            state.settings.originalHeight = data.frames[0].height;
+        }
+
+        // Add each extracted frame to state
+        // Duration per frame = 1000ms / fps so total playback matches video length
+        const frameDuration = Math.round(1000 / fps);
+        for (const f of data.frames) {
+            state.frames.push({
+                id: `frame-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                file: f.path,
+                duration: frameDuration
+            });
+        }
+
+        updateUI();
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('videoImportModal'));
+        if (modal) modal.hide();
+
+        showToast(`Imported ${data.count} frames from video`, 'success');
+
+    } catch (err) {
+        progressEl.classList.add('d-none');
+        errorEl.textContent = 'Network error during extraction';
+        errorEl.classList.remove('d-none');
+        extractBtn.innerHTML = originalHTML;
+        extractBtn.disabled = false;
+        console.error('Video extract error:', err);
+    }
 }
 
 function formatFileSize(bytes) {

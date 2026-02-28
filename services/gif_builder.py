@@ -170,7 +170,7 @@ class GifBuilder:
             logger.warning(f"Unknown transition type '{transition_type}', defaulting to crossfade")
             return self.create_crossfade_frames(img1, img2, steps)
 
-    def build_gif(self, project, output_path, session_manager, session_id):
+    def build_gif(self, project, output_path, session_manager, session_id, output_format='gif'):
         """
         Build a GIF from a project
 
@@ -211,6 +211,8 @@ class GifBuilder:
                 if transition_steps < 1:
                     return False, "Transition steps must be at least 1", 0
 
+            is_apng = output_format == 'apng'
+
             # Load and prepare all frames
             prepared_frames = []
             durations = []
@@ -225,13 +227,15 @@ class GifBuilder:
                         continue
 
                     # Prepare the frame with transparency settings
+                    # APNG supports full alpha, so skip binarization
                     img = self.image_processor.prepare_frame(
                         frame_path,
                         target_width,
                         target_height,
                         transparent=transparent,
                         background_color=background_color,
-                        alpha_threshold=alpha_threshold
+                        alpha_threshold=alpha_threshold,
+                        binarize_alpha=not is_apng
                     )
 
                     if img is None:
@@ -248,7 +252,7 @@ class GifBuilder:
             if len(prepared_frames) == 0:
                 return False, "No valid frames to create GIF", 0
 
-            # Helper function to convert image to GIF format
+            # Helper function to convert image to GIF palette format
             def to_gif_format(img):
                 if transparent and img.mode == 'RGBA':
                     # Convert RGBA to P mode with transparency
@@ -261,9 +265,17 @@ class GifBuilder:
                         img = img.convert('RGB')
                     return img.convert('P', palette=Image.Palette.ADAPTIVE, colors=256)
 
-            # Convert frames for GIF format and add transitions
-            gif_frames = []
-            gif_durations = []
+            # Helper to ensure RGBA for APNG
+            def to_apng_format(img):
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+                return img
+
+            convert_frame = to_apng_format if is_apng else to_gif_format
+
+            # Convert frames and add transitions
+            output_frames = []
+            output_durations = []
 
             for i in range(len(prepared_frames)):
                 current_frame = prepared_frames[i]
@@ -273,8 +285,8 @@ class GifBuilder:
                 if transition_time > 0:
                     # Add main frame with reduced duration
                     main_duration = current_duration - transition_time
-                    gif_frames.append(to_gif_format(current_frame))
-                    gif_durations.append(main_duration)
+                    output_frames.append(convert_frame(current_frame))
+                    output_durations.append(main_duration)
 
                     # Create and add transition frames
                     transition_frames = self.create_transition_frames(
@@ -289,34 +301,41 @@ class GifBuilder:
                     remainder = transition_time % transition_steps
 
                     for j, trans_frame in enumerate(transition_frames):
-                        gif_frames.append(to_gif_format(trans_frame))
+                        output_frames.append(convert_frame(trans_frame))
                         # Add remainder to last transition frame to maintain exact timing
                         dur = transition_frame_duration + (remainder if j == len(transition_frames) - 1 else 0)
-                        gif_durations.append(dur)
+                        output_durations.append(dur)
                 else:
                     # No transitions - just add the frame as-is
-                    gif_frames.append(to_gif_format(current_frame))
-                    gif_durations.append(current_duration)
+                    output_frames.append(convert_frame(current_frame))
+                    output_durations.append(current_duration)
 
-            # Create GIF
-            first_frame = gif_frames[0]
-            remaining_frames = gif_frames[1:] if len(gif_frames) > 1 else []
+            # Save animation
+            first_frame = output_frames[0]
+            remaining_frames = output_frames[1:] if len(output_frames) > 1 else []
 
-            # Build save parameters
-            save_params = {
-                'save_all': True,
-                'append_images': remaining_frames,
-                'duration': gif_durations,
-                'loop': loop_count,
-                'optimize': False,  # Disable for transparency support
-                'disposal': 2  # Clear to background color
-            }
+            if is_apng:
+                # Save as APNG
+                save_params = {
+                    'format': 'PNG',
+                    'save_all': True,
+                    'append_images': remaining_frames,
+                    'duration': output_durations,
+                    'loop': loop_count,
+                }
+            else:
+                # Save as GIF
+                save_params = {
+                    'save_all': True,
+                    'append_images': remaining_frames,
+                    'duration': output_durations,
+                    'loop': loop_count,
+                    'optimize': False,  # Disable for transparency support
+                    'disposal': 2  # Clear to background color
+                }
+                if transparent:
+                    save_params['transparency'] = 0  # Index 0 is transparent
 
-            # Add transparency if enabled
-            if transparent:
-                save_params['transparency'] = 0  # Index 0 is transparent
-
-            # Save as GIF
             first_frame.save(output_path, **save_params)
 
             # Get file size
@@ -325,16 +344,18 @@ class GifBuilder:
             # Check if output size is within limits
             if file_size > self.config.QUOTAS['max_output_size']:
                 Path(output_path).unlink()  # Delete the file
-                return False, f"Generated GIF exceeds size limit ({file_size} bytes)", 0
+                fmt_label = 'APNG' if is_apng else 'GIF'
+                return False, f"Generated {fmt_label} exceeds size limit ({file_size} bytes)", 0
 
-            logger.info(f"Successfully created GIF: {output_path} ({file_size} bytes)")
-            return True, "GIF created successfully", file_size
+            fmt_label = 'APNG' if is_apng else 'GIF'
+            logger.info(f"Successfully created {fmt_label}: {output_path} ({file_size} bytes)")
+            return True, f"{fmt_label} created successfully", file_size
 
         except Exception as e:
             logger.error(f"GIF creation failed: {e}")
             return False, f"GIF creation failed: {str(e)}", 0
 
-    def create_preview_gif(self, project, output_path, session_manager, session_id, max_frames=10):
+    def create_preview_gif(self, project, output_path, session_manager, session_id, max_frames=10, output_format='gif'):
         """
         Create a preview GIF with limited frames for faster generation
 
@@ -377,7 +398,8 @@ class GifBuilder:
                 preview_project,
                 output_path,
                 session_manager,
-                session_id
+                session_id,
+                output_format=output_format
             )
 
             if success and len(project.frames) > max_frames:

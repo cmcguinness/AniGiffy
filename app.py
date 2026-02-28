@@ -11,6 +11,7 @@ from services.session_manager import SessionManager
 from services.quota_manager import QuotaManager
 from services.image_processor import ImageProcessor
 from services.gif_builder import GifBuilder
+from services.video_processor import VideoProcessor
 
 # Configure logging
 logging.basicConfig(
@@ -34,12 +35,14 @@ session_manager = SessionManager(config)
 quota_manager = QuotaManager(config, session_manager)
 image_processor = ImageProcessor(config)
 gif_builder = GifBuilder(config, image_processor)
+video_processor = VideoProcessor(config)
 
 # Make services available to routes
 app.session_manager = session_manager
 app.quota_manager = quota_manager
 app.image_processor = image_processor
 app.gif_builder = gif_builder
+app.video_processor = video_processor
 
 # Set up cleanup scheduler
 scheduler = BackgroundScheduler()
@@ -117,10 +120,11 @@ def add_security_headers(response):
 
 
 # Import and register routes
-from routes import frames, generate
+from routes import frames, generate, video
 
 app.register_blueprint(frames.bp)
 app.register_blueprint(generate.bp)
+app.register_blueprint(video.bp)
 
 
 # Main route
