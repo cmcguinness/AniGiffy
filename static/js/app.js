@@ -80,6 +80,8 @@ function initializeEventListeners() {
     document.getElementById('loop').addEventListener('change', updateSettings);
     document.getElementById('outputWidth').addEventListener('change', updateSettings);
     document.getElementById('outputHeight').addEventListener('change', updateSettings);
+    document.getElementById('defaultDuration').addEventListener('change', updateSettings);
+    document.getElementById('applyAllDuration').addEventListener('click', applyDurationToAll);
 
     // Transparency settings
     document.getElementById('transparent').addEventListener('change', updateTransparencySettings);
@@ -264,6 +266,15 @@ function updateFrameDuration(frameId, duration) {
     if (frame) {
         frame.duration = parseInt(duration);
     }
+}
+
+function applyDurationToAll() {
+    const duration = parseInt(document.getElementById('defaultDuration').value);
+    if (!duration || duration < 1) return;
+    state.frames.forEach(f => f.duration = duration);
+    state.settings.defaultDuration = duration;
+    updateUI();
+    showToast(`Set all ${state.frames.length} frames to ${duration}ms`, 'info');
 }
 
 function deleteFrame(frameId) {
@@ -514,6 +525,7 @@ function updateSettings(event) {
     state.settings.backgroundColor = document.getElementById('backgroundColor').value;
     state.settings.alphaThreshold = parseInt(document.getElementById('alphaThreshold').value);
     state.settings.transitionType = document.getElementById('transitionType').value;
+    state.settings.defaultDuration = parseInt(document.getElementById('defaultDuration').value);
     state.settings.transitionTime = parseInt(document.getElementById('transitionTime').value);
     state.settings.transitionSteps = parseInt(document.getElementById('transitionSteps').value);
 
@@ -574,6 +586,7 @@ function updateUI() {
     // Update form inputs
     document.getElementById('outputFormat').value = state.settings.outputFormat;
     document.getElementById('scale').value = state.settings.scale;
+    document.getElementById('defaultDuration').value = state.settings.defaultDuration;
     document.getElementById('loop').value = state.settings.loop;
     updateGenerateButtonLabel();
 

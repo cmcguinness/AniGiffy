@@ -203,13 +203,27 @@ class GifBuilder:
             transition_time = project.settings.get('transitionTime', 0)
             transition_steps = project.settings.get('transitionSteps', 5)
 
-            # Validate transition settings
+            # Validate and adjust transition settings
+            # GIF stores delays in centiseconds; browsers treat 0cs as ~100ms,
+            # so each transition frame must be at least 20ms (2cs).
+            MIN_FRAME_MS = 20
             if transition_time > 0:
                 for frame in project.frames:
                     if frame.duration < transition_time:
                         return False, f"Frame duration ({frame.duration}ms) must be >= transition time ({transition_time}ms)", 0
                 if transition_steps < 1:
                     return False, "Transition steps must be at least 1", 0
+                # Auto-reduce steps so each transition frame stays >= MIN_FRAME_MS
+                max_steps = transition_time // MIN_FRAME_MS
+                if max_steps < 1:
+                    # Transition time itself is below minimum; clamp to one frame at MIN_FRAME_MS
+                    transition_steps = 1
+                    transition_time = MIN_FRAME_MS
+                    logger.info(f"Transition time too short, clamped to {MIN_FRAME_MS}ms / 1 step")
+                elif transition_steps > max_steps:
+                    logger.info(f"Reduced transition steps from {transition_steps} to {max_steps} "
+                                f"to maintain minimum {MIN_FRAME_MS}ms per frame")
+                    transition_steps = max_steps
 
             is_apng = output_format == 'apng'
 
