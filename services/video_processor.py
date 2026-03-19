@@ -20,7 +20,14 @@ class VideoProcessor:
         self.ffprobe = shutil.which('ffprobe')
 
         if not self.ffmpeg or not self.ffprobe:
-            logger.warning("ffmpeg/ffprobe not found on PATH; video import disabled")
+            import os
+            path = os.environ.get('PATH', '')
+            logger.warning(
+                f"ffmpeg/ffprobe not found on PATH; video import disabled. "
+                f"ffmpeg={self.ffmpeg}, ffprobe={self.ffprobe}, PATH={path}"
+            )
+        else:
+            logger.info(f"ffmpeg found at {self.ffmpeg}, ffprobe at {self.ffprobe}")
 
     @property
     def available(self):
