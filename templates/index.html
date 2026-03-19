@@ -113,9 +113,13 @@
                                     <option value="10">10%</option>
                                 </select>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Output Size</label>
-                                <div class="form-control-plaintext" id="outputSize">-</div>
+                            <div class="col-md-2 mb-3">
+                                <label for="outputWidth" class="form-label">Width</label>
+                                <input type="number" class="form-control" id="outputWidth" min="1" max="4096" placeholder="-">
+                            </div>
+                            <div class="col-md-2 mb-3">
+                                <label for="outputHeight" class="form-label">Height</label>
+                                <input type="number" class="form-control" id="outputHeight" min="1" max="4096" placeholder="-">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="loop" class="form-label">Loop Count</label>

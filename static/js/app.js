@@ -22,13 +22,12 @@ const state = {
 
 // Calculate scaled dimensions
 function getScaledDimensions() {
-    if (!state.settings.originalWidth || !state.settings.originalHeight) {
+    const w = parseInt(document.getElementById('outputWidth').value);
+    const h = parseInt(document.getElementById('outputHeight').value);
+    if (!w || !h) {
         return { width: null, height: null };
     }
-    return {
-        width: Math.round(state.settings.originalWidth * state.settings.scale / 100),
-        height: Math.round(state.settings.originalHeight * state.settings.scale / 100)
-    };
+    return { width: w, height: h };
 }
 
 // Initialize application
@@ -79,6 +78,8 @@ function initializeEventListeners() {
     document.getElementById('outputFormat').addEventListener('change', updateSettings);
     document.getElementById('scale').addEventListener('change', updateSettings);
     document.getElementById('loop').addEventListener('change', updateSettings);
+    document.getElementById('outputWidth').addEventListener('change', updateSettings);
+    document.getElementById('outputHeight').addEventListener('change', updateSettings);
 
     // Transparency settings
     document.getElementById('transparent').addEventListener('change', updateTransparencySettings);
@@ -117,17 +118,19 @@ async function handleImageUpload(event) {
             const data = await response.json();
 
             if (response.ok) {
-                // Set original dimensions from first image
-                if (state.settings.originalWidth === null || state.settings.originalHeight === null) {
-                    state.settings.originalWidth = data.width;
-                    state.settings.originalHeight = data.height;
+                // Track largest dimensions across all uploads
+                if (data.width > (state.settings.originalWidth || 0) ||
+                    data.height > (state.settings.originalHeight || 0)) {
+                    state.settings.originalWidth = Math.max(data.width, state.settings.originalWidth || 0);
+                    state.settings.originalHeight = Math.max(data.height, state.settings.originalHeight || 0);
+                    recalcDimensionsFromScale();
+                }
 
-                    // Auto-enable transparency if first image has it
-                    if (data.hasTransparency) {
-                        state.settings.transparent = true;
-                        document.getElementById('transparent').checked = true;
-                        updateTransparencyUI();
-                    }
+                // Auto-enable transparency if first image has it
+                if (state.frames.length === 0 && data.hasTransparency) {
+                    state.settings.transparent = true;
+                    document.getElementById('transparent').checked = true;
+                    updateTransparencyUI();
                 }
 
                 // Add frame to state
@@ -502,7 +505,8 @@ function stopPreview() {
 }
 
 // Settings Updates
-function updateSettings() {
+function updateSettings(event) {
+    const oldScale = state.settings.scale;
     state.settings.outputFormat = document.getElementById('outputFormat').value;
     state.settings.scale = parseInt(document.getElementById('scale').value);
     state.settings.loop = parseInt(document.getElementById('loop').value);
@@ -512,7 +516,11 @@ function updateSettings() {
     state.settings.transitionType = document.getElementById('transitionType').value;
     state.settings.transitionTime = parseInt(document.getElementById('transitionTime').value);
     state.settings.transitionSteps = parseInt(document.getElementById('transitionSteps').value);
-    updateOutputSizeDisplay();
+
+    // Only recalc dimensions from scale when scale actually changed
+    if (state.settings.scale !== oldScale) {
+        recalcDimensionsFromScale();
+    }
     updateGenerateButtonLabel();
 }
 
@@ -524,14 +532,15 @@ function updateGenerateButtonLabel() {
     }
 }
 
+function recalcDimensionsFromScale() {
+    if (!state.settings.originalWidth || !state.settings.originalHeight) return;
+    const scale = state.settings.scale;
+    document.getElementById('outputWidth').value = Math.round(state.settings.originalWidth * scale / 100);
+    document.getElementById('outputHeight').value = Math.round(state.settings.originalHeight * scale / 100);
+}
+
 function updateOutputSizeDisplay() {
-    const dims = getScaledDimensions();
-    const outputSizeEl = document.getElementById('outputSize');
-    if (dims.width && dims.height) {
-        outputSizeEl.textContent = `${dims.width} × ${dims.height}`;
-    } else {
-        outputSizeEl.textContent = '-';
-    }
+    recalcDimensionsFromScale();
 }
 
 function updateTransparencySettings() {
@@ -566,7 +575,6 @@ function updateUI() {
     document.getElementById('outputFormat').value = state.settings.outputFormat;
     document.getElementById('scale').value = state.settings.scale;
     document.getElementById('loop').value = state.settings.loop;
-    updateOutputSizeDisplay();
     updateGenerateButtonLabel();
 
     // Update transparency settings
@@ -770,11 +778,16 @@ async function handleVideoExtract() {
             return;
         }
 
-        // Set dimensions from first frame if not already set
-        if (data.frames.length > 0 &&
-            (state.settings.originalWidth === null || state.settings.originalHeight === null)) {
-            state.settings.originalWidth = data.frames[0].width;
-            state.settings.originalHeight = data.frames[0].height;
+        // Track largest dimensions from extracted frames
+        if (data.frames.length > 0) {
+            const fw = data.frames[0].width;
+            const fh = data.frames[0].height;
+            if (fw > (state.settings.originalWidth || 0) ||
+                fh > (state.settings.originalHeight || 0)) {
+                state.settings.originalWidth = Math.max(fw, state.settings.originalWidth || 0);
+                state.settings.originalHeight = Math.max(fh, state.settings.originalHeight || 0);
+                recalcDimensionsFromScale();
+            }
         }
 
         // Add each extracted frame to state
