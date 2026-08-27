@@ -266,6 +266,14 @@ class GifBuilder:
             if len(prepared_frames) == 0:
                 return False, "No valid frames to create GIF", 0
 
+            # Ping-pong: play forward, then back through the middle frames, so
+            # A,B,C,D becomes A,B,C,D,C,B and loops seamlessly back to A. The
+            # endpoints are held once so they don't stutter at the turnaround.
+            # Prepared images are reused, so this costs no extra decoding.
+            if project.settings.get('pingPong', False) and len(prepared_frames) > 2:
+                prepared_frames = prepared_frames + prepared_frames[-2:0:-1]
+                durations = durations + durations[-2:0:-1]
+
             # Helper function to convert image to GIF palette format
             def to_gif_format(img):
                 if transparent and img.mode == 'RGBA':
@@ -402,7 +410,8 @@ class GifBuilder:
                 alpha_threshold=project.settings.get('alphaThreshold', 128),
                 transition_type=project.settings.get('transitionType', 'crossfade'),
                 transition_time=project.settings.get('transitionTime', 0),
-                transition_steps=project.settings.get('transitionSteps', 5)
+                transition_steps=project.settings.get('transitionSteps', 5),
+                ping_pong=project.settings.get('pingPong', False)
             )
 
             preview_project.frames = frames_to_use

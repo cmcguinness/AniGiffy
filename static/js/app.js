@@ -14,7 +14,8 @@ const state = {
         transitionType: 'crossfade',
         transitionTime: 0,
         transitionSteps: 5,
-        outputFormat: 'gif'
+        outputFormat: 'gif',
+        pingPong: false
     },
     frames: [],
     currentPreview: null
@@ -78,6 +79,7 @@ function initializeEventListeners() {
     document.getElementById('outputFormat').addEventListener('change', updateSettings);
     document.getElementById('scale').addEventListener('change', updateSettings);
     document.getElementById('loop').addEventListener('change', updateSettings);
+    document.getElementById('pingPong').addEventListener('change', updateSettings);
     document.getElementById('outputWidth').addEventListener('change', updateSettings);
     document.getElementById('outputHeight').addEventListener('change', updateSettings);
     document.getElementById('defaultDuration').addEventListener('change', updateSettings);
@@ -526,6 +528,7 @@ function updateSettings(event) {
     state.settings.outputFormat = document.getElementById('outputFormat').value;
     state.settings.scale = parseInt(document.getElementById('scale').value);
     state.settings.loop = parseInt(document.getElementById('loop').value);
+    state.settings.pingPong = document.getElementById('pingPong').checked;
     state.settings.transparent = document.getElementById('transparent').checked;
     state.settings.backgroundColor = document.getElementById('backgroundColor').value;
     state.settings.alphaThreshold = parseInt(document.getElementById('alphaThreshold').value);
@@ -593,6 +596,7 @@ function updateUI() {
     document.getElementById('scale').value = state.settings.scale;
     document.getElementById('defaultDuration').value = state.settings.defaultDuration;
     document.getElementById('loop').value = state.settings.loop;
+    document.getElementById('pingPong').checked = state.settings.pingPong;
     updateGenerateButtonLabel();
 
     // Update transparency settings
