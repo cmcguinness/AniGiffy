@@ -46,7 +46,7 @@ class Config:
     }
 
     # Allowed file types
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'jpe', 'jfif', 'gif', 'webp'}
     ALLOWED_MIMETYPES = {
         'image/png',
         'image/jpeg',

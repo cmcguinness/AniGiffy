@@ -47,10 +47,10 @@ class ImageProcessor:
             if img_format and img_format.lower() not in ['png', 'jpeg', 'gif', 'webp']:
                 return None, f"Unsupported image format: {img.format}"
 
-            # Check dimensions
-            width, height = img.size
-            if not self.check_dimensions(width, height):
-                return None, f"Image dimensions {width}x{height} exceed maximum {self.config.QUOTAS['max_dimension']}"
+            # Scale oversized images down rather than rejecting them.
+            # When this happens, img.info['original_size'] records the size the
+            # file had on disk so callers can report it (and re-save the file).
+            img = self.downscale_to_max_dimension(img)
 
             return img, None
 
@@ -62,6 +62,57 @@ class ImageProcessor:
         """Check if dimensions are within limits"""
         max_dim = self.config.QUOTAS['max_dimension']
         return width <= max_dim and height <= max_dim
+
+    def downscale_to_max_dimension(self, img):
+        """
+        Scale an image down proportionally so neither side exceeds
+        QUOTAS['max_dimension']. Images already within the limit are returned
+        untouched. When a resize happens, the pre-resize size is recorded in
+        img.info['original_size'].
+        """
+        width, height = img.size
+        if self.check_dimensions(width, height):
+            return img
+
+        max_dim = self.config.QUOTAS['max_dimension']
+        scale = min(max_dim / width, max_dim / height)
+        new_size = (max(1, round(width * scale)), max(1, round(height * scale)))
+
+        info = dict(img.info)
+        img = img.resize(new_size, Image.Resampling.LANCZOS)
+        img.info = info
+        img.info['original_size'] = (width, height)
+
+        logger.info(f"Downscaled oversized image {width}x{height} -> {new_size[0]}x{new_size[1]}")
+        return img
+
+    def save_downscaled(self, file_path, img):
+        """
+        Overwrite a stored upload with its downscaled version so the large
+        original isn't re-decoded on every preview/generate.
+
+        Multi-frame files (animated GIF/WebP) are left alone -- re-saving would
+        discard every frame but the first. Returns True if the file was rewritten.
+        """
+        try:
+            with Image.open(file_path) as original:
+                fmt = original.format
+                if getattr(original, 'n_frames', 1) > 1:
+                    logger.info(f"Skipping re-save of multi-frame {fmt}: {file_path}")
+                    return False
+
+            out = img
+            if fmt == 'JPEG' and out.mode not in ('RGB', 'L', 'CMYK'):
+                out = out.convert('RGB')
+
+            out.save(file_path, format=fmt)
+            return True
+
+        except Exception as e:
+            # Non-fatal: the in-memory image is already downscaled, so the
+            # upload still succeeds -- we just keep re-scaling it on each load.
+            logger.warning(f"Could not re-save downscaled image {file_path}: {e}")
+            return False
 
     def resize_image(self, img, target_width, target_height, fit_mode='contain'):
         """

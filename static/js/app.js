@@ -120,6 +120,11 @@ async function handleImageUpload(event) {
             const data = await response.json();
 
             if (response.ok) {
+                // Let the user know if the image was too big and got scaled down
+                if (data.resizedFrom) {
+                    showToast(data.message, 'warning');
+                }
+
                 // Track largest dimensions across all uploads
                 if (data.width > (state.settings.originalWidth || 0) ||
                     data.height > (state.settings.originalHeight || 0)) {

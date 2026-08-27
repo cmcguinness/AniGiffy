@@ -27,9 +27,11 @@ def upload_image():
 
         # Validate file extension
         if not current_app.image_processor.validate_file_extension(file.filename):
+            ext_seen = Path(file.filename).suffix.lower().lstrip('.') or '(none)'
+            allowed = ", ".join(sorted(current_app.config["ALLOWED_EXTENSIONS"]))
             return jsonify({
                 'error': 'Invalid file type',
-                'message': f'Allowed types: {", ".join(current_app.config["ALLOWED_EXTENSIONS"])}'
+                'message': f'"{file.filename}" has extension "{ext_seen}". Allowed types: {allowed}'
             }), 400
 
         # Check file size
@@ -44,8 +46,11 @@ def upload_image():
                 'message': message
             }), 429
 
-        # Generate unique filename
-        ext = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+        # Generate unique filename. Derive the extension from the original
+        # filename directly -- secure_filename() strips non-ASCII names down to
+        # nothing (e.g. "photo.jpg" in Cyrillic), which used to crash here.
+        ext = Path(file.filename).suffix.lower().lstrip('.')
+        ext = {'jpe': 'jpg', 'jfif': 'jpg', 'jpeg': 'jpg'}.get(ext, ext) or 'img'
         filename = f"{uuid.uuid4().hex}.{ext}"
 
         # Save to uploads directory
@@ -64,6 +69,13 @@ def upload_image():
                 'message': error
             }), 400
 
+        # Oversized uploads are scaled down rather than rejected. Persist the
+        # smaller version so it isn't re-scaled on every preview/generate.
+        original_size = img.info.get('original_size')
+        if original_size:
+            if current_app.image_processor.save_downscaled(file_path, img):
+                file_size = file_path.stat().st_size
+
         # Get image dimensions
         width, height = img.size
 
@@ -72,7 +84,7 @@ def upload_image():
 
         logger.info(f"Image uploaded: {filename} ({width}x{height}, {file_size} bytes, transparency={has_transparency})")
 
-        return jsonify({
+        response = {
             'success': True,
             'filename': filename,
             'path': f"uploads/{filename}",
@@ -80,7 +92,20 @@ def upload_image():
             'width': width,
             'height': height,
             'hasTransparency': has_transparency
-        }), 200
+        }
+
+        if original_size:
+            response['resizedFrom'] = {
+                'width': original_size[0],
+                'height': original_size[1]
+            }
+            response['message'] = (
+                f'{file.filename} was {original_size[0]}x{original_size[1]} and '
+                f'has been scaled down to {width}x{height} '
+                f'(max {current_app.config["QUOTAS"]["max_dimension"]}px).'
+            )
+
+        return jsonify(response), 200
 
     except Exception as e:
         logger.error(f"Upload failed: {e}")

@@ -55,7 +55,9 @@ def upload_video():
             }), 400
 
         # Save with UUID filename
-        ext = secure_filename(file.filename).rsplit('.', 1)[1].lower()
+        # Derive from the original name: secure_filename() reduces non-ASCII
+        # filenames to an empty string, which used to crash here.
+        ext = Path(file.filename).suffix.lower().lstrip('.') or 'mp4'
         filename = f"{uuid.uuid4().hex}.{ext}"
 
         uploads_dir = current_app.session_manager.safe_path(session['id'], 'uploads')
