@@ -8,6 +8,13 @@ logger = logging.getLogger(__name__)
 class ImageProcessor:
     """Handles image loading, validation, and transformations"""
 
+    # Formats (as Pillow reports them) we accept on load. MPO is the
+    # multi-picture JPEG container many cameras write into .JPG files.
+    PILLOW_FORMATS = {'PNG', 'JPEG', 'MPO', 'GIF', 'WEBP'}
+
+    # Formats that can't be written back as themselves -- re-saved as JPEG.
+    SAVE_AS_JPEG = {'MPO'}
+
     def __init__(self, config):
         self.config = config
         self.allowed_extensions = config.ALLOWED_EXTENSIONS
@@ -43,9 +50,12 @@ class ImageProcessor:
             if img and not hasattr(img, 'format'):
                 img.format = img_format
 
-            # Check format
-            if img_format and img_format.lower() not in ['png', 'jpeg', 'gif', 'webp']:
-                return None, f"Unsupported image format: {img.format}"
+            # Check format. MPO is a multi-picture JPEG container -- plenty of
+            # cameras (Canon, Fujifilm) write .JPG files that Pillow identifies
+            # as MPO. The first frame is the real photo, which is what
+            # Image.open() already gives us, so treat it as a JPEG.
+            if img_format and img_format.upper() not in self.PILLOW_FORMATS:
+                return None, f"Unsupported image format: {img_format}"
 
             # Scale oversized images down rather than rejecting them.
             # When this happens, img.info['original_size'] records the size the
@@ -97,7 +107,11 @@ class ImageProcessor:
         try:
             with Image.open(file_path) as original:
                 fmt = original.format
-                if getattr(original, 'n_frames', 1) > 1:
+                # An MPO carries a second, smaller copy of the same shot rather
+                # than animation frames, so flattening it to JPEG is fine.
+                if fmt in self.SAVE_AS_JPEG:
+                    fmt = 'JPEG'
+                elif getattr(original, 'n_frames', 1) > 1:
                     logger.info(f"Skipping re-save of multi-frame {fmt}: {file_path}")
                     return False
 
