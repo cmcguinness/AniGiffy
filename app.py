@@ -12,6 +12,7 @@ from services.quota_manager import QuotaManager
 from services.image_processor import ImageProcessor
 from services.gif_builder import GifBuilder
 from services.video_processor import VideoProcessor
+from services.image_aligner import ImageAligner
 
 # Configure logging
 logging.basicConfig(
@@ -36,6 +37,7 @@ quota_manager = QuotaManager(config, session_manager)
 image_processor = ImageProcessor(config)
 gif_builder = GifBuilder(config, image_processor)
 video_processor = VideoProcessor(config)
+image_aligner = ImageAligner(config)
 
 # Make services available to routes
 app.session_manager = session_manager
@@ -43,6 +45,7 @@ app.quota_manager = quota_manager
 app.image_processor = image_processor
 app.gif_builder = gif_builder
 app.video_processor = video_processor
+app.image_aligner = image_aligner
 
 # Set up cleanup scheduler
 scheduler = BackgroundScheduler()

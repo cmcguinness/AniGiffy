@@ -32,6 +32,9 @@ There is no automated test suite. Test changes manually via the browser UI and C
 - `routes/generate.py` — Preview and full GIF generation API endpoints.
 - `services/gif_builder.py` — Core GIF creation with Pillow. Handles transitions (crossfade, fade-to-color, carousel), preview generation, and frame assembly. Largest backend file (~391 lines).
 - `services/image_processor.py` — Image validation, loading, resizing, transparency handling.
+- `services/image_aligner.py` — OpenCV background alignment: SIFT/ORB features, RANSAC similarity
+  transform against a reference frame, then a common-area crop. Streams one image at a time so
+  memory stays flat regardless of frame count.
 - `services/session_manager.py` — Per-session filesystem isolation under `user_data/{session_id}/`.
 - `services/quota_manager.py` — Enforces resource limits (storage, file size, dimensions, frame count).
 - `models/project.py` — Project and Frame dataclasses with serialization.
@@ -48,6 +51,7 @@ There is no automated test suite. Test changes manually via the browser UI and C
 ## Key API Endpoints
 
 - `POST /api/frames/upload` — Upload images
+- `POST /api/frames/align` — Align frame backgrounds (rewrites the image files in place)
 - `POST /api/generate/preview` — Generate preview GIF (first 10 frames or all)
 - `POST /api/generate/full` — Generate full GIF
 - `GET /api/frames/image/<filename>` — Serve uploaded images

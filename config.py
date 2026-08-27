@@ -36,7 +36,12 @@ class Config:
         'save_project': '30 per minute',
         'general_api': '100 per minute',
         'video_upload': '3 per minute, 10 per hour',
+        'align': '3 per minute, 20 per hour',
     }
+
+    # Auto-alignment limits. Aligning is CPU-heavy (feature detection plus two
+    # passes over every frame), so cap how much work one request can ask for.
+    ALIGN_MAX_FRAMES = 60
 
     # Cleanup settings
     CLEANUP_CONFIG = {

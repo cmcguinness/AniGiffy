@@ -298,3 +298,75 @@ def get_image(filename):
             'error': 'Failed to serve image',
             'message': str(e)
         }), 500
+
+
+@bp.route('/align', methods=['POST'])
+@limiter.limit("3 per minute, 20 per hour")
+def align_frames():
+    """Align frames so their backgrounds line up, rewriting the image files"""
+    try:
+        data = request.get_json()
+        frames = data.get('frames', [])
+
+        if len(frames) < 2:
+            return jsonify({
+                'error': 'Not enough frames',
+                'message': 'Alignment needs at least two frames'
+            }), 400
+
+        max_frames = current_app.config['ALIGN_MAX_FRAMES']
+        if len(frames) > max_frames:
+            return jsonify({
+                'error': 'Too many frames',
+                'message': f'Alignment is limited to {max_frames} frames at a time'
+            }), 400
+
+        # Resolve every frame to a validated path before touching any of them
+        paths = []
+        for frame in frames:
+            file_ref = frame.get('file') if isinstance(frame, dict) else frame
+            if not file_ref:
+                return jsonify({'error': 'Invalid frame', 'message': 'Frame has no file'}), 400
+
+            path = current_app.session_manager.safe_path(session['id'], file_ref)
+            if not path.exists():
+                return jsonify({
+                    'error': 'File not found',
+                    'message': f'Image file does not exist: {file_ref}'
+                }), 404
+            paths.append(path)
+
+        reference_index = int(data.get('referenceIndex', 0))
+
+        result = current_app.image_aligner.align(paths, reference_index)
+
+        if 'error' in result:
+            return jsonify({
+                'error': 'Alignment failed',
+                'message': result['error']
+            }), 422
+
+        skipped = result['skipped']
+        message = f"Aligned {result['aligned']} of {len(paths)} frames to {result['width']}x{result['height']}"
+        if skipped:
+            listed = ', '.join(str(s['index'] + 1) for s in skipped)
+            message += f". Frame(s) {listed} didn't match the reference and were left as they were."
+
+        logger.info(f"Alignment: {message}")
+
+        return jsonify({
+            'success': True,
+            'aligned': result['aligned'],
+            'skipped': skipped,
+            'width': result['width'],
+            'height': result['height'],
+            'reference': result['reference'],
+            'message': message
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Alignment failed: {e}")
+        return jsonify({
+            'error': 'Alignment failed',
+            'message': str(e)
+        }), 500

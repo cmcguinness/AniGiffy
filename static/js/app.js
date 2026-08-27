@@ -18,7 +18,10 @@ const state = {
         pingPong: false
     },
     frames: [],
-    currentPreview: null
+    currentPreview: null,
+    // Bumped whenever image files are rewritten in place (e.g. by alignment)
+    // so the browser reloads thumbnails instead of showing cached ones.
+    imageVersion: 0
 };
 
 // Calculate scaled dimensions
@@ -96,6 +99,8 @@ function initializeEventListeners() {
     document.getElementById('transitionSteps').addEventListener('change', updateSettings);
 
     // Video import
+    document.getElementById('alignFramesBtn').addEventListener('click', alignFrames);
+
     document.getElementById('importVideoBtn').addEventListener('click', () => {
         document.getElementById('videoUpload').click();
     });
@@ -164,6 +169,55 @@ async function handleImageUpload(event) {
     event.target.value = '';
 }
 
+// Auto-align backgrounds
+async function alignFrames() {
+    if (state.frames.length < 2) {
+        showToast('Add at least two frames before aligning', 'warning');
+        return;
+    }
+
+    const button = document.getElementById('alignFramesBtn');
+    const originalHTML = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Aligning...';
+
+    try {
+        const response = await fetch('/api/frames/align', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                frames: state.frames.map(f => ({ file: f.file })),
+                referenceIndex: 0
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Files were rewritten under the same names, so force thumbnails
+            // and any preview to reload rather than serve from cache.
+            state.imageVersion++;
+
+            // Every frame is now the cropped size
+            state.settings.originalWidth = data.width;
+            state.settings.originalHeight = data.height;
+            recalcDimensionsFromScale();
+
+            stopPreview();
+            updateUI();
+            showToast(data.message, data.skipped.length ? 'warning' : 'success');
+        } else {
+            showToast(`Alignment failed: ${data.message}`, 'danger');
+        }
+    } catch (error) {
+        console.error('Alignment error:', error);
+        showToast('Error aligning frames', 'danger');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+    }
+}
+
 // Frame Management
 function renderFrames() {
     const frameList = document.getElementById('frameList');
@@ -228,7 +282,7 @@ function createFrameElement(frame, index) {
     div.dataset.index = index;
 
     div.innerHTML = `
-        <img src="/api/frames/image/${frame.file.split('/').pop()}"
+        <img src="/api/frames/image/${frame.file.split('/').pop()}?v=${state.imageVersion}"
              class="frame-thumbnail"
              alt="Frame ${index + 1}">
         <div class="frame-controls">

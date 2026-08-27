@@ -6,6 +6,9 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 
 - **Image Upload**: Support for PNG, JPEG, GIF, and WebP formats with always-visible drag-drop target
 - **Frame Management**: Add, remove, and reorder frames with drag-and-drop
+- **Auto-Align Backgrounds**: Feature-based registration (OpenCV) shifts, scales and rotates
+  frames so their backgrounds line up, then crops to the area every frame covers. Frames that
+  don't match the reference are reported and left untouched
 - **Auto-Detect Dimensions**: Output size automatically set from first uploaded image
 - **Auto-Detect Transparency**: Transparency mode enabled automatically if first image has alpha channel
 - **Scale Control**: Scale output from 10% to 100% of original dimensions
@@ -19,6 +22,7 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 - **Intelligent Preview System**:
   - Single "Preview" button for projects with 10 or fewer frames
   - Separate "Quick Preview" and "Full Preview" buttons for larger projects
+- **Ping-Pong Playback**: Play frames forward then backward (A, B, C, D, C, B) before looping
 - **Auto-Download**: Generated GIFs download automatically
 - **Multi-User Safe**: Session-based isolation with automatic cleanup
 - **Rate Limiting**: Built-in protection against abuse
