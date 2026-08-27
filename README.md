@@ -1,17 +1,22 @@
 # AniGiffy
 
-A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. Upload images, arrange frames, and generate optimized GIFs directly in your browser.
+A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. Upload images or import video frames, arrange them, align their backgrounds, and generate optimized GIFs (or APNGs) directly in your browser.
 
 ## Features
 
-- **Image Upload**: Support for PNG, JPEG, GIF, and WebP formats with always-visible drag-drop target
+- **Image Upload**: PNG, JPEG (including `.jfif`/`.jpe` and camera MPO files), GIF and WebP,
+  with an always-visible drag-drop target. Images larger than the maximum dimension are scaled
+  down automatically rather than rejected
+- **Video Import**: Pull frames out of an MP4 or MOV at a chosen frame rate (requires ffmpeg)
 - **Frame Management**: Add, remove, and reorder frames with drag-and-drop
 - **Auto-Align Backgrounds**: Feature-based registration (OpenCV) shifts, scales and rotates
   frames so their backgrounds line up, then crops to the area every frame covers. Frames that
   don't match the reference are reported and left untouched
-- **Auto-Detect Dimensions**: Output size automatically set from first uploaded image
+- **Auto-Detect Dimensions**: Output size automatically set from the largest uploaded image
 - **Auto-Detect Transparency**: Transparency mode enabled automatically if first image has alpha channel
-- **Scale Control**: Scale output from 10% to 100% of original dimensions
+- **Scale Control**: Scale output to a preset percentage (100/75/66/50/33/25/10%) of the
+  original dimensions, or type exact width/height values
+- **Output Format**: Animated GIF or animated PNG (APNG, with full alpha)
 - **Transparency Support**: Create GIFs with transparent backgrounds
 - **Multiple Transition Types**:
   - Cross-fade (smooth blend between images)
@@ -34,6 +39,7 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 
 - Python 3.10+
 - pip
+- ffmpeg (optional — needed only for Video Import)
 
 ### Setup
 
@@ -63,13 +69,20 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 
 ## Usage
 
-1. **Upload Images**: Click the "Add Image" placeholder or drag and drop images onto it to upload one or more image files
+1. **Upload Images**: Click the "Add Image" placeholder or drag and drop images onto it to upload one or more image files. Or use **Import Video** to extract frames from an MP4/MOV
 2. **Arrange Frames**: Drag and drop frames to reorder them
-3. **Adjust Timing**: Set the duration (in milliseconds) for each frame
-4. **Configure Settings** (organized in tabs):
+3. **Align Backgrounds** (optional): Click **Auto-Align** to shift, scale and rotate every frame
+   onto the first one so their backgrounds line up, then crop to the area they all cover. Built
+   for a series shot from nearly the same spot; frames that don't match are reported and left
+   alone. This rewrites the uploaded images, so re-running it crops further each time
+4. **Adjust Timing**: Set the duration (in milliseconds) for each frame, or use **Apply All** to
+   give every frame the same duration
+5. **Configure Settings** (organized in tabs):
    - **Size Tab**:
-     - **Output Scale**: Choose from 10% to 100% of original image size
+     - **Format**: Animated GIF or Animated PNG
+     - **Output Scale**: 100%, 75%, 66%, 50%, 33%, 25% or 10% of the original size — or set width/height directly
      - **Loop Count**: 0 for infinite loop, or specify a number of plays
+     - **Ping-pong**: Play forward then backward (A, B, C, D, C, B) before looping
    - **Transparency Tab**:
      - **Transparent GIF**: Enable for transparency support
      - **Background Color**: Fill color for non-transparent GIFs
@@ -78,11 +91,11 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
      - **Transition Type**: Choose Cross-fade, Fade to White/Black, or Carousel (Left/Right/Up/Down)
      - **Transition Time**: Transition duration in milliseconds (0 = no transitions)
      - **Transition Steps**: Number of intermediate frames in transition
-5. **Preview**:
+6. **Preview**:
    - **10 or fewer frames**: Single "Preview" button generates all frames
    - **More than 10 frames**: "Quick Preview" (first 10 frames) or "Full Preview" (all frames)
-6. **Stop**: Stop the preview animation
-7. **Generate GIF**: Create and automatically download the final animated GIF
+7. **Stop**: Stop the preview animation
+8. **Generate GIF**: Create and automatically download the final animation
 
 ## Configuration
 
@@ -115,6 +128,7 @@ RATE_LIMITS = {
     'save_project': '30 per minute',
     'general_api': '100 per minute',
     'video_upload': '3 per minute, 10 per hour',
+    'align': '3 per minute, 20 per hour',
 }
 ```
 
@@ -124,7 +138,14 @@ RATE_LIMITS = {
 CLEANUP_CONFIG = {
     'session_lifetime': 168,   # Hours (1 week) before session data is deleted
     'cleanup_interval': 24,    # Hours between cleanup runs
+    'orphan_file_age': 24,     # Hours before unreferenced files are removed
 }
+```
+
+### Alignment
+
+```python
+ALIGN_MAX_FRAMES = 60          # Most frames one align request may process
 ```
 
 ## Project Structure
@@ -135,16 +156,21 @@ AniGiffy/
 ├── config.py              # Configuration settings
 ├── extensions.py          # Shared Flask extensions (rate limiter)
 ├── requirements.txt       # Python dependencies
+├── Dockerfile             # Container build (installs ffmpeg)
+├── Procfile               # Process definition for gunicorn
 ├── models/
 │   └── project.py         # Project and Frame data models
 ├── routes/
-│   ├── frames.py          # Frame/upload endpoints
-│   └── generate.py        # GIF generation endpoints
+│   ├── frames.py          # Frame/upload/align endpoints
+│   ├── generate.py        # GIF generation endpoints
+│   └── video.py           # Video upload and frame extraction endpoints
 ├── services/
 │   ├── session_manager.py # Session isolation and cleanup
 │   ├── quota_manager.py   # Resource limit enforcement
 │   ├── image_processor.py # Image validation and transformation
-│   └── gif_builder.py     # GIF creation with Pillow
+│   ├── image_aligner.py   # OpenCV background alignment
+│   ├── video_processor.py # ffmpeg probing and frame extraction
+│   └── gif_builder.py     # GIF/APNG creation with Pillow
 ├── static/
 │   ├── css/style.css      # Custom styles
 │   └── js/app.js          # Frontend JavaScript
@@ -160,20 +186,34 @@ AniGiffy/
 |--------|----------|-------------|
 | GET | `/` | Main editor interface |
 | POST | `/api/frames/upload` | Upload an image |
+| POST | `/api/frames/align` | Align frame backgrounds (rewrites the image files) |
+| POST | `/api/frames/add` | Add a frame to the project |
+| PUT | `/api/frames/<frame_id>` | Update a frame's properties |
+| DELETE | `/api/frames/<frame_id>` | Delete a frame |
+| PUT | `/api/frames/reorder` | Reorder frames |
 | GET | `/api/frames/image/<filename>` | Serve uploaded image |
 | GET | `/api/frames/list` | List uploaded images |
-| POST | `/api/generate/preview` | Generate preview GIF |
-| POST | `/api/generate/full` | Generate full GIF |
-| GET | `/api/generate/file/<filename>` | Serve generated GIF |
-| GET | `/api/generate/download/<filename>` | Download generated GIF |
+| POST | `/api/video/upload` | Upload a video for frame extraction |
+| POST | `/api/video/extract` | Extract frames from an uploaded video |
+| POST | `/api/generate/preview` | Generate preview animation |
+| POST | `/api/generate/full` | Generate full animation |
+| GET | `/api/generate/file/<filename>` | Serve generated animation |
+| GET | `/api/generate/download/<filename>` | Download generated animation |
+| GET | `/api/generate/list` | List generated animations |
 
 ## Dependencies
 
 - **Flask** - Web framework
-- **Pillow** - Image processing and GIF creation
+- **Pillow** - Image processing and GIF/APNG creation
+- **OpenCV** (`opencv-python-headless`) + **NumPy** - Feature detection and warping for Auto-Align
 - **Flask-Limiter** - Rate limiting
 - **Flask-Session** - Server-side sessions
 - **APScheduler** - Background cleanup tasks
+- **gunicorn** - Production WSGI server
+
+External tools:
+
+- **ffmpeg** / **ffprobe** - Required for Video Import only. The rest of the app works without it
 
 ## Production Deployment
 
