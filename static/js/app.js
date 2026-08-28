@@ -100,6 +100,7 @@ function initializeEventListeners() {
 
     // Video import
     document.getElementById('alignFramesBtn').addEventListener('click', alignFrames);
+    document.getElementById('exportFramesBtn').addEventListener('click', exportFrames);
 
     document.getElementById('importVideoBtn').addEventListener('click', () => {
         document.getElementById('videoUpload').click();
@@ -151,6 +152,9 @@ async function handleImageUpload(event) {
                 const frame = {
                     id: `frame-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     file: data.path,
+                    // Kept only so an export can be named after the shot it
+                    // came from; the server stores files under a UUID.
+                    name: file.name,
                     duration: state.settings.defaultDuration
                 };
 
@@ -167,6 +171,55 @@ async function handleImageUpload(event) {
 
     // Reset input
     event.target.value = '';
+}
+
+// Download the frame images as PNGs
+async function exportFrames() {
+    if (state.frames.length === 0) {
+        showToast('Add some frames before exporting', 'warning');
+        return;
+    }
+
+    const button = document.getElementById('exportFramesBtn');
+    const original = button.innerHTML;
+    // Encoding a dozen full-size photos as PNG takes long enough that the
+    // button has to say something, or it reads as a dead click.
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Preparing...';
+
+    try {
+        const response = await fetch('/api/frames/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                frames: state.frames.map(f => ({ file: f.file, name: f.name }))
+            })
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showToast(data.message || 'Export failed', 'danger');
+            return;
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'frames.zip';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showToast(`Downloaded ${state.frames.length} PNG${state.frames.length === 1 ? '' : 's'}`, 'success');
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('Error exporting frames', 'danger');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = original;
+    }
 }
 
 // Auto-align backgrounds

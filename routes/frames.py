@@ -1,7 +1,9 @@
+import os
 import uuid
 import logging
+import tempfile
 from pathlib import Path
-from flask import Blueprint, request, jsonify, session, current_app
+from flask import Blueprint, request, jsonify, session, current_app, send_file, after_this_request
 from werkzeug.utils import secure_filename
 from PIL import Image
 
@@ -371,3 +373,86 @@ def align_frames():
             'error': 'Alignment failed',
             'message': str(e)
         }), 500
+
+
+@bp.route('/export', methods=['POST'])
+@limiter.limit(config.RATE_LIMITS['export'])
+def export_frames():
+    """Download the current frame images as a ZIP of PNGs"""
+    try:
+        data = request.get_json()
+        frames = data.get('frames', [])
+
+        if not frames:
+            return jsonify({
+                'error': 'No frames',
+                'message': 'Add some frames before exporting'
+            }), 400
+
+        max_frames = current_app.config['QUOTAS']['max_frames']
+        if len(frames) > max_frames:
+            return jsonify({
+                'error': 'Too many frames',
+                'message': f'Export is limited to {max_frames} frames'
+            }), 400
+
+        entries = []
+        for index, frame in enumerate(frames, start=1):
+            file_ref = frame.get('file') if isinstance(frame, dict) else frame
+            if not file_ref:
+                return jsonify({'error': 'Invalid frame', 'message': 'Frame has no file'}), 400
+
+            path = current_app.session_manager.safe_path(session['id'], file_ref)
+            if not path.exists():
+                return jsonify({
+                    'error': 'File not found',
+                    'message': f'Image file does not exist: {file_ref}'
+                }), 404
+
+            entries.append((path, _export_name(index, frame)))
+
+        # The archive is written to a system temp file rather than the session
+        # directory: PNG is several times larger than the stored JPEG, so a
+        # full set would blow the session storage quota just by being offered
+        # for download. It is deleted as soon as the response is sent.
+        handle, archive_path = tempfile.mkstemp(suffix='.zip')
+        os.close(handle)
+
+        @after_this_request
+        def cleanup(response):
+            try:
+                os.unlink(archive_path)
+            except OSError as exc:
+                logger.warning(f"Could not remove export archive: {exc}")
+            return response
+
+        current_app.frame_exporter.export_png_zip(entries, archive_path)
+        logger.info(f"Exported {len(entries)} frame(s) for session {session['id']}")
+
+        return send_file(
+            archive_path,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name='frames.zip'
+        )
+
+    except Exception as e:
+        logger.error(f"Frame export failed: {e}")
+        return jsonify({
+            'error': 'Export failed',
+            'message': str(e)
+        }), 500
+
+
+def _export_name(index, frame):
+    """
+    Name one exported file.
+
+    Numbered by position so the set stays in animation order when a file
+    manager sorts it alphabetically -- the stored filenames are UUIDs and
+    carry no order. The name the user uploaded is appended when the browser
+    passed it along, since a UUID tells them nothing about which shot it was.
+    """
+    original = frame.get('name') if isinstance(frame, dict) else None
+    stem = Path(secure_filename(original or '')).stem
+    return f"{index:02d}_{stem}.png" if stem else f"{index:02d}.png"

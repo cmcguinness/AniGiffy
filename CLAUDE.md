@@ -33,6 +33,8 @@ There is no automated test suite. Test changes manually via the browser UI and C
 - `routes/video.py` — Video upload and frame extraction API endpoints.
 - `services/gif_builder.py` — Core GIF/APNG creation with Pillow. Handles transitions (crossfade, fade-to-color, carousel, motion tween/morph via `FrameInterpolator`), ping-pong sequencing, preview generation, and frame assembly. Largest backend file (~460 lines).
 - `services/image_processor.py` — Image validation, loading, resizing, transparency handling. Accepts MPO (camera multi-picture JPEG) and scales oversized uploads down instead of rejecting them.
+- `services/frame_exporter.py` — Packages frame images into a ZIP of PNGs. Encodes one image
+  at a time straight into the archive stream, so memory stays flat regardless of frame count.
 - `services/frame_interpolator.py` — Motion transitions. Fits a similarity transform
   between two frames (reusing `ImageAligner`'s feature matching) for the "tween" mode, and
   computes dense optical flow with per-pixel trust maps for the "morph" mode. Both return
@@ -60,6 +62,7 @@ There is no automated test suite. Test changes manually via the browser UI and C
 
 - `POST /api/frames/upload` — Upload images
 - `POST /api/frames/align` — Align frame backgrounds (rewrites the image files in place)
+- `POST /api/frames/export` — Download the current frame images as a ZIP of PNGs
 - `POST /api/generate/preview` — Generate preview GIF (first 10 frames or all)
 - `POST /api/generate/full` — Generate full GIF
 - `GET /api/frames/image/<filename>` — Serve uploaded images
@@ -79,5 +82,8 @@ There is no automated test suite. Test changes manually via the browser UI and C
 - Quotas and rate limits are configured in `config.py`, which is authoritative; the README mirrors those values and should be updated alongside them. The `@limiter.limit(...)` decorators in `routes/` read `config.RATE_LIMITS` — never inline a limit string there, or the config silently stops being the source of truth.
 - Frontend uses no framework — vanilla JS with direct DOM manipulation.
 - All frontend dependencies are CDN-loaded (Bootstrap, Bootstrap Icons) — no npm/node build step.
+- The export archive is written to a system temp file, never the session directory: PNG is
+  several times larger than the stored JPEG, so a full set would breach the session storage
+  quota just by being offered for download. It is deleted once the response is sent.
 - Alignment rewrites the uploaded image files in place, so the frontend bumps `state.imageVersion`
   to bust cached thumbnails whenever it runs.

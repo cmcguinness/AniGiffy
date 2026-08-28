@@ -13,6 +13,7 @@ from services.image_processor import ImageProcessor
 from services.gif_builder import GifBuilder
 from services.video_processor import VideoProcessor
 from services.image_aligner import ImageAligner
+from services.frame_exporter import FrameExporter
 
 # Configure logging
 logging.basicConfig(
@@ -38,6 +39,7 @@ image_processor = ImageProcessor(config)
 gif_builder = GifBuilder(config, image_processor)
 video_processor = VideoProcessor(config)
 image_aligner = ImageAligner(config)
+frame_exporter = FrameExporter()
 
 # Make services available to routes
 app.session_manager = session_manager
@@ -46,6 +48,7 @@ app.image_processor = image_processor
 app.gif_builder = gif_builder
 app.video_processor = video_processor
 app.image_aligner = image_aligner
+app.frame_exporter = frame_exporter
 
 # Set up cleanup scheduler
 scheduler = BackgroundScheduler()

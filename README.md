@@ -27,6 +27,9 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
   - Fade to White/Black (fade through intermediate color)
   - Carousel (slide in four directions: Left, Right, Up, Down)
   - Configurable timing and steps for all transitions
+- **Download Frames as PNGs**: Export the current frame images as a ZIP of PNG files. Run
+  Auto-Align first to get the aligned, common-area-cropped versions. Files are numbered in
+  animation order and keep the name you uploaded them under (`01_IMG_1764.png`).
 - **Tabbed Settings UI**: Organized into Size, Transparency, and Transitions tabs
 - **Intelligent Preview System**:
   - Single "Preview" button for projects with 10 or fewer frames
@@ -150,6 +153,7 @@ RATE_LIMITS = {
     'general_api': '100 per minute',
     'video_upload': '3 per minute, 10 per hour',
     'align': '3 per minute, 20 per hour',
+    'export': '6 per minute, 30 per hour',
 }
 ```
 

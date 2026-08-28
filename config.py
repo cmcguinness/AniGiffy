@@ -44,6 +44,7 @@ class Config:
         'general_api': '100 per minute',
         'video_upload': '3 per minute, 10 per hour',
         'align': '3 per minute, 20 per hour',
+        'export': '6 per minute, 30 per hour',
     }
 
     # Auto-alignment limits. Aligning is CPU-heavy (feature detection plus two
