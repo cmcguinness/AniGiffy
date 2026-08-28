@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify, session, current_app
 from werkzeug.utils import secure_filename
 from PIL import Image
 
+from config import config
 from extensions import limiter
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,7 @@ bp = Blueprint('frames', __name__, url_prefix='/api/frames')
 
 
 @bp.route('/upload', methods=['POST'])
-@limiter.limit("10 per minute, 50 per hour")
+@limiter.limit(config.RATE_LIMITS['upload'])
 def upload_image():
     """Upload an image file"""
     try:
@@ -301,7 +302,7 @@ def get_image(filename):
 
 
 @bp.route('/align', methods=['POST'])
-@limiter.limit("3 per minute, 20 per hour")
+@limiter.limit(config.RATE_LIMITS['align'])
 def align_frames():
     """Align frames so their backgrounds line up, rewriting the image files"""
     try:

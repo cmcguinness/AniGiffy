@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, session, current_app
 from werkzeug.utils import secure_filename
 from PIL import Image
 
+from config import config
 from extensions import limiter
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ bp = Blueprint('video', __name__, url_prefix='/api/video')
 
 
 @bp.route('/upload', methods=['POST'])
-@limiter.limit("3 per minute, 10 per hour")
+@limiter.limit(config.RATE_LIMITS['video_upload'])
 def upload_video():
     """Upload a video file, probe its metadata, and return info"""
     try:
@@ -122,7 +123,7 @@ def upload_video():
 
 
 @bp.route('/extract', methods=['POST'])
-@limiter.limit("3 per minute, 10 per hour")
+@limiter.limit(config.RATE_LIMITS['video_upload'])
 def extract_frames():
     """Extract frames from a previously uploaded video at a chosen FPS"""
     try:

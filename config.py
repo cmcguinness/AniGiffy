@@ -29,9 +29,16 @@ class Config:
         'max_video_duration': 120,  # seconds
     }
 
-    # Rate limiting (requests per time period)
+    # Rate limiting (requests per time period).
+    # The upload limit has to clear a whole set in one drop: max_frames is 200
+    # and the frontend uploads sequentially, awaiting each file, so a user
+    # adding a folder of photos makes that many calls back to back. A cap of
+    # 10/minute rejected the tail of any drop bigger than ten images. The
+    # sequential upload is its own throttle -- each call decodes and resamples
+    # a full-size photo -- so this bound exists to stop abuse, not to pace
+    # legitimate use.
     RATE_LIMITS = {
-        'upload': '10 per minute, 50 per hour',
+        'upload': '120 per minute, 600 per hour',
         'generate': '5 per minute, 20 per hour',
         'save_project': '30 per minute',
         'general_api': '100 per minute',

@@ -69,13 +69,14 @@ There is no automated test suite. Test changes manually via the browser UI and C
 ## Important Conventions
 
 - Route handlers in `routes/` should only handle request/response flow — delegate logic to `services/`.
+- GIF palette reduction goes through `GifBuilder._quantize` (octree, not Pillow's default median cut — see its docstring). The transparent path must use `_quantize_reserving_zero`, since index 0 is declared transparent on save and no quantiser reserves it for you.
 - All image processing goes through `ImageProcessor`; all GIF assembly through `GifBuilder`; all alignment through `ImageAligner`; all motion in-betweening through `FrameInterpolator`.
 - The minimum frame delay is format-dependent (`GIF_MIN_FRAME_MS` / `APNG_MIN_FRAME_MS` in
   `gif_builder.py`), and transition steps are capped so no frame falls below it. GIF's 20ms
   floor is a hard format limit; APNG stores delays as a rational fraction of a second and so
   allows far more steps, which is what the motion transitions want.
 - Session isolation: each user gets a directory under `user_data/{session_id}/` with `uploads/` and `output/` subdirectories. `SessionManager` validates paths to prevent directory traversal.
-- Quotas and rate limits are configured in `config.py`, which is authoritative; the README mirrors those values and should be updated alongside them.
+- Quotas and rate limits are configured in `config.py`, which is authoritative; the README mirrors those values and should be updated alongside them. The `@limiter.limit(...)` decorators in `routes/` read `config.RATE_LIMITS` — never inline a limit string there, or the config silently stops being the source of truth.
 - Frontend uses no framework — vanilla JS with direct DOM manipulation.
 - All frontend dependencies are CDN-loaded (Bootstrap, Bootstrap Icons) — no npm/node build step.
 - Alignment rewrites the uploaded image files in place, so the frontend bumps `state.imageVersion`

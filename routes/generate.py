@@ -14,7 +14,7 @@ bp = Blueprint('generate', __name__, url_prefix='/api/generate')
 
 
 @bp.route('/preview', methods=['POST'])
-@limiter.limit("5 per minute, 20 per hour")
+@limiter.limit(config.RATE_LIMITS['generate'])
 def generate_preview():
     """Generate a preview GIF with limited frames"""
     try:
@@ -97,7 +97,7 @@ def generate_preview():
 
 
 @bp.route('/full', methods=['POST'])
-@limiter.limit("5 per minute, 20 per hour")
+@limiter.limit(config.RATE_LIMITS['generate'])
 def generate_full():
     """Generate the full GIF"""
     try:

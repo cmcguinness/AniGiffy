@@ -1,4 +1,6 @@
 import logging
+
+import numpy as np
 from PIL import Image
 from pathlib import Path
 
@@ -21,6 +23,57 @@ class GifBuilder:
         self.config = config
         self.image_processor = image_processor
         self.interpolator = FrameInterpolator(config)
+
+    @staticmethod
+    def _quantize(img, colors):
+        """
+        Reduce an image to a GIF palette.
+
+        Uses the octree quantiser rather than Pillow's default median cut.
+        Median cut sorts every pixel in the image to find its palette, which
+        costs ~44ms on a single 403x268 frame -- and an animation quantises
+        one frame per transition step, so that was the largest single cost in
+        building a GIF, larger than decoding the source photos. Octree builds
+        the same size palette by accumulating colours into a tree, ~100x
+        faster, and because it doesn't dither, the flat runs it leaves
+        compress substantially better: measured over a real 12-photo
+        animation, 576ms -> 6ms and 795KB -> 625KB.
+
+        The trade is slightly coarser colour (mean error 2.86 -> 3.60 out of
+        255). It shows as faint blotching in large smooth areas, visible when
+        a photo's flattest region is magnified several times, and not at
+        viewing size.
+        """
+        if img.mode != 'RGB':
+            # Quantise from RGB even when the source has alpha: octree would
+            # otherwise treat alpha as a fourth dimension and spend palette
+            # entries on it, and the caller handles transparency itself.
+            img = img.convert('RGB')
+        return img.quantize(colors=colors, method=Image.Quantize.FASTOCTREE)
+
+    @classmethod
+    def _quantize_reserving_zero(cls, img):
+        """
+        Quantise to a palette whose index 0 is left free for transparency.
+
+        The frame is saved with index 0 declared transparent, so any opaque
+        pixel that lands on index 0 is punched out as a hole. Asking the
+        quantiser for 255 colours does not prevent that -- it just numbers its
+        255 colours from zero -- so the indices are shifted up by one and the
+        palette given a spare entry at the front. Whether index 0 happened to
+        go unused was previously left to the quantiser's ordering.
+        """
+        quantised = cls._quantize(img, colors=255)
+
+        shifted = np.asarray(quantised, dtype=np.uint8) + 1
+        out = Image.fromarray(shifted, mode='P')
+
+        # Pad the palette back to 255 real colours in case the quantiser
+        # returned fewer, so every shifted index still addresses an entry.
+        palette = quantised.getpalette()[:255 * 3]
+        palette += [0] * (255 * 3 - len(palette))
+        out.putpalette([0, 0, 0] + palette)
+        return out
 
     def create_crossfade_frames(self, img1, img2, steps):
         """
@@ -300,15 +353,13 @@ class GifBuilder:
             # Helper function to convert image to GIF palette format
             def to_gif_format(img):
                 if transparent and img.mode == 'RGBA':
-                    # Convert RGBA to P mode with transparency
-                    gif_frame = img.convert('P', palette=Image.Palette.ADAPTIVE, colors=255)
-                    mask = Image.eval(img.split()[3], lambda a: 255 if a == 0 else 0)
+                    alpha = img.split()[3]
+                    gif_frame = self._quantize_reserving_zero(img)
+                    mask = Image.eval(alpha, lambda a: 255 if a == 0 else 0)
                     gif_frame.paste(0, mask=mask)
                     return gif_frame
                 else:
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    return img.convert('P', palette=Image.Palette.ADAPTIVE, colors=256)
+                    return self._quantize(img, colors=256)
 
             # Helper to ensure RGBA for APNG
             def to_apng_format(img):

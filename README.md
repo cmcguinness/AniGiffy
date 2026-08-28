@@ -139,9 +139,12 @@ QUOTAS = {
 
 ### Rate Limits
 
+These are applied by the route decorators, which read this dict directly, so
+`config.py` is the only place to change them.
+
 ```python
 RATE_LIMITS = {
-    'upload': '10 per minute, 50 per hour',
+    'upload': '120 per minute, 600 per hour',
     'generate': '5 per minute, 20 per hour',
     'save_project': '30 per minute',
     'general_api': '100 per minute',
