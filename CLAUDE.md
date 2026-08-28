@@ -31,8 +31,13 @@ There is no automated test suite. Test changes manually via the browser UI and C
 - `routes/frames.py` — Upload, frame management and alignment API endpoints.
 - `routes/generate.py` — Preview and full GIF/APNG generation API endpoints.
 - `routes/video.py` — Video upload and frame extraction API endpoints.
-- `services/gif_builder.py` — Core GIF/APNG creation with Pillow. Handles transitions (crossfade, fade-to-color, carousel), ping-pong sequencing, preview generation, and frame assembly. Largest backend file (~435 lines).
+- `services/gif_builder.py` — Core GIF/APNG creation with Pillow. Handles transitions (crossfade, fade-to-color, carousel, motion tween/morph via `FrameInterpolator`), ping-pong sequencing, preview generation, and frame assembly. Largest backend file (~460 lines).
 - `services/image_processor.py` — Image validation, loading, resizing, transparency handling. Accepts MPO (camera multi-picture JPEG) and scales oversized uploads down instead of rejecting them.
+- `services/frame_interpolator.py` — Motion transitions. Fits a similarity transform
+  between two frames (reusing `ImageAligner`'s feature matching) for the "tween" mode, and
+  computes dense optical flow with per-pixel trust maps for the "morph" mode. Both return
+  `None` when no reliable motion can be estimated so `GifBuilder` falls back to a
+  cross-fade.
 - `services/image_aligner.py` — OpenCV background alignment: SIFT/ORB features, RANSAC similarity
   transform against a reference frame, then a common-area crop. Streams one image at a time so
   memory stays flat regardless of frame count.
@@ -64,7 +69,11 @@ There is no automated test suite. Test changes manually via the browser UI and C
 ## Important Conventions
 
 - Route handlers in `routes/` should only handle request/response flow — delegate logic to `services/`.
-- All image processing goes through `ImageProcessor`; all GIF assembly through `GifBuilder`; all alignment through `ImageAligner`.
+- All image processing goes through `ImageProcessor`; all GIF assembly through `GifBuilder`; all alignment through `ImageAligner`; all motion in-betweening through `FrameInterpolator`.
+- The minimum frame delay is format-dependent (`GIF_MIN_FRAME_MS` / `APNG_MIN_FRAME_MS` in
+  `gif_builder.py`), and transition steps are capped so no frame falls below it. GIF's 20ms
+  floor is a hard format limit; APNG stores delays as a rational fraction of a second and so
+  allows far more steps, which is what the motion transitions want.
 - Session isolation: each user gets a directory under `user_data/{session_id}/` with `uploads/` and `output/` subdirectories. `SessionManager` validates paths to prevent directory traversal.
 - Quotas and rate limits are configured in `config.py`, which is authoritative; the README mirrors those values and should be updated alongside them.
 - Frontend uses no framework — vanilla JS with direct DOM manipulation.

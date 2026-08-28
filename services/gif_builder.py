@@ -2,7 +2,16 @@ import logging
 from PIL import Image
 from pathlib import Path
 
+from services.frame_interpolator import FrameInterpolator
+
 logger = logging.getLogger(__name__)
+
+# Shortest delay each output format can actually hold. GIF delays are whole
+# centiseconds and browsers render anything under 2cs as ~100ms, so 20ms is a
+# hard floor. APNG delays are a rational fraction of a second, so it can go
+# far finer -- 10ms (100fps) is past the point of visible benefit.
+GIF_MIN_FRAME_MS = 20
+APNG_MIN_FRAME_MS = 10
 
 
 class GifBuilder:
@@ -11,6 +20,7 @@ class GifBuilder:
     def __init__(self, config, image_processor):
         self.config = config
         self.image_processor = image_processor
+        self.interpolator = FrameInterpolator(config)
 
     def create_crossfade_frames(self, img1, img2, steps):
         """
@@ -151,13 +161,23 @@ class GifBuilder:
             img2: Second image (next frame)
             steps: Number of transition frames to create
             transition_type: Type of transition ('crossfade', 'fade-to-white', 'fade-to-black',
-                           'carousel-left', 'carousel-right', 'carousel-up', 'carousel-down')
+                           'carousel-left', 'carousel-right', 'carousel-up', 'carousel-down',
+                           'motion-tween', 'motion-morph')
 
         Returns:
             List of transition frame images
         """
         if transition_type == 'crossfade':
             return self.create_crossfade_frames(img1, img2, steps)
+        elif transition_type == 'motion-tween':
+            # Falls back to a cross-fade when no camera movement can be
+            # fitted -- a dissolve is a poor transition, but a warp built on
+            # a transform we don't trust is a broken one.
+            frames = self.interpolator.create_tween_frames(img1, img2, steps)
+            return frames if frames is not None else self.create_crossfade_frames(img1, img2, steps)
+        elif transition_type == 'motion-morph':
+            frames = self.interpolator.create_morph_frames(img1, img2, steps)
+            return frames if frames is not None else self.create_crossfade_frames(img1, img2, steps)
         elif transition_type == 'fade-to-white':
             return self.create_fade_to_color_frames(img1, img2, steps, (255, 255, 255))
         elif transition_type == 'fade-to-black':
@@ -203,10 +223,15 @@ class GifBuilder:
             transition_time = project.settings.get('transitionTime', 0)
             transition_steps = project.settings.get('transitionSteps', 5)
 
-            # Validate and adjust transition settings
-            # GIF stores delays in centiseconds; browsers treat 0cs as ~100ms,
-            # so each transition frame must be at least 20ms (2cs).
-            MIN_FRAME_MS = 20
+            is_apng = output_format == 'apng'
+
+            # Validate and adjust transition settings.
+            # GIF stores delays in centiseconds and browsers treat 0cs as
+            # ~100ms, so a GIF frame can't go below 20ms (2cs). APNG stores
+            # delays as a rational number of seconds and has no such floor,
+            # so motion transitions can use many more steps there -- which is
+            # exactly where they look best.
+            MIN_FRAME_MS = APNG_MIN_FRAME_MS if is_apng else GIF_MIN_FRAME_MS
             if transition_time > 0:
                 for frame in project.frames:
                     if frame.duration < transition_time:
@@ -224,8 +249,6 @@ class GifBuilder:
                     logger.info(f"Reduced transition steps from {transition_steps} to {max_steps} "
                                 f"to maintain minimum {MIN_FRAME_MS}ms per frame")
                     transition_steps = max_steps
-
-            is_apng = output_format == 'apng'
 
             # Load and prepare all frames
             prepared_frames = []

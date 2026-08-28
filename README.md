@@ -20,6 +20,10 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 - **Transparency Support**: Create GIFs with transparent backgrounds
 - **Multiple Transition Types**:
   - Cross-fade (smooth blend between images)
+  - Motion Tween (fits the camera movement between two frames and steps along it, so the
+    scene slides instead of dissolving)
+  - Motion Morph (moves each pixel along its own optical-flow vector, so a subject that
+    moved actually travels across the in-between frames)
   - Fade to White/Black (fade through intermediate color)
   - Carousel (slide in four directions: Left, Right, Up, Down)
   - Configurable timing and steps for all transitions
@@ -88,9 +92,23 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
      - **Background Color**: Fill color for non-transparent GIFs
      - **Alpha Threshold**: Pixels below this opacity become transparent
    - **Transitions Tab**:
-     - **Transition Type**: Choose Cross-fade, Fade to White/Black, or Carousel (Left/Right/Up/Down)
+     - **Transition Type**: Choose Cross-fade, Motion Tween, Motion Morph, Fade to
+       White/Black, or Carousel (Left/Right/Up/Down)
      - **Transition Time**: Transition duration in milliseconds (0 = no transitions)
-     - **Transition Steps**: Number of intermediate frames in transition
+     - **Transition Steps**: Number of intermediate frames in transition. Steps are capped
+       at one per 20ms of transition time for GIF (10ms for APNG), because neither format
+       can hold a shorter delay. The motion transitions want at least 8 steps to look
+       smooth, so give them 160ms or more.
+
+   **About the motion transitions.** Both build genuine in-between frames rather than
+   blending. *Motion Tween* fits a single similarity transform (shift, rotation, scale)
+   between the two frames and moves a fraction of the way along it — it only models
+   whole-frame camera movement, but it can never smear. *Motion Morph* estimates a dense
+   optical flow field and moves each pixel individually, which is far more expressive but
+   depends on the motion being trackable: it works best on modest movement over textured
+   subjects, and degrades to a cross-fade where it can't follow what moved. Neither is
+   destructive — if no reliable motion can be estimated, the transition falls back to a
+   cross-fade.
 6. **Preview**:
    - **10 or fewer frames**: Single "Preview" button generates all frames
    - **More than 10 frames**: "Quick Preview" (first 10 frames) or "Full Preview" (all frames)

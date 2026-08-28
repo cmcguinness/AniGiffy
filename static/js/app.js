@@ -596,6 +596,34 @@ function updateSettings(event) {
         recalcDimensionsFromScale();
     }
     updateGenerateButtonLabel();
+    updateTransitionHelp();
+}
+
+// Motion transitions are only smooth with enough in-between frames, and the
+// server caps steps at one per 20ms of transition time for GIF (10ms for
+// APNG) because those formats can't hold a shorter delay. Warn when the
+// current settings would leave the motion too choppy to be worth it.
+function updateTransitionHelp() {
+    const help = document.getElementById('transitionStepsHelp');
+    if (!help) return;
+
+    const isMotion = state.settings.transitionType.startsWith('motion-');
+    const minFrameMs = state.settings.outputFormat === 'apng' ? 10 : 20;
+    const maxSteps = Math.floor(state.settings.transitionTime / minFrameMs);
+
+    if (isMotion && state.settings.transitionTime > 0 && maxSteps < 8) {
+        help.textContent = `Number of frames in transition — only ${maxSteps} `
+            + `fit in ${state.settings.transitionTime}ms. Motion looks smooth `
+            + `from about 8 steps, so allow at least ${8 * minFrameMs}ms.`;
+        help.className = 'form-text text-warning';
+    } else if (isMotion) {
+        help.textContent = 'Number of frames in transition — more steps means '
+            + 'smoother motion.';
+        help.className = 'form-text text-muted';
+    } else {
+        help.textContent = 'Number of frames in transition';
+        help.className = 'form-text text-muted';
+    }
 }
 
 function updateGenerateButtonLabel() {
@@ -662,6 +690,7 @@ function updateUI() {
 
     // Update transition settings
     document.getElementById('transitionType').value = state.settings.transitionType;
+    updateTransitionHelp();
 
     // Render frames
     renderFrames();

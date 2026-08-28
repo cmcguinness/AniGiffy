@@ -184,6 +184,8 @@
                                 <label for="transitionType" class="form-label">Transition Type</label>
                                 <select class="form-select" id="transitionType">
                                     <option value="crossfade">Cross-fade</option>
+                                    <option value="motion-tween">Motion Tween (camera)</option>
+                                    <option value="motion-morph">Motion Morph (subject)</option>
                                     <option value="fade-to-white">Fade to White</option>
                                     <option value="fade-to-black">Fade to Black</option>
                                     <option value="carousel-left">Carousel Left</option>
@@ -200,7 +202,7 @@
                             <div class="col-md-4 mb-3">
                                 <label for="transitionSteps" class="form-label">Transition Steps</label>
                                 <input type="number" class="form-control" id="transitionSteps" value="5" min="1">
-                                <small class="form-text text-muted">Number of frames in transition</small>
+                                <small class="form-text text-muted" id="transitionStepsHelp">Number of frames in transition</small>
                             </div>
                         </div>
                     </div>
