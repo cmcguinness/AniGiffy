@@ -341,7 +341,17 @@ def align_frames():
 
         reference_index = int(data.get('referenceIndex', 0))
 
-        result = current_app.image_aligner.align(paths, reference_index)
+        # Aligned frames are written as PNG, several times the size of the
+        # JPEGs they replace. Budget the room those originals are about to
+        # free, plus whatever the session has left.
+        remaining = current_app.config['QUOTAS']['max_total_storage']
+        quota = current_app.quota_manager.get_remaining_quota(session['id'])
+        if quota:
+            remaining = quota['storage']['remaining']
+        reclaimed = sum(p.stat().st_size for p in paths if p.exists())
+
+        result = current_app.image_aligner.align(
+            paths, reference_index, max_output_bytes=remaining + reclaimed)
 
         if 'error' in result:
             return jsonify({
@@ -357,6 +367,12 @@ def align_frames():
 
         logger.info(f"Alignment: {message}")
 
+        # Alignment writes PNG, so a frame uploaded as a JPEG now lives under
+        # a different name. The client's references are stale until it takes
+        # these back.
+        session_dir = current_app.session_manager.get_session_dir(session['id']).resolve()
+        files = [str(p.resolve().relative_to(session_dir)) for p in result['paths']]
+
         return jsonify({
             'success': True,
             'aligned': result['aligned'],
@@ -364,6 +380,7 @@ def align_frames():
             'width': result['width'],
             'height': result['height'],
             'reference': result['reference'],
+            'files': files,
             'message': message
         }), 200
 

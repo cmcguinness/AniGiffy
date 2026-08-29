@@ -19,7 +19,11 @@ class Config:
     # Resource quotas per session
     QUOTAS = {
         'max_upload_size': 25 * 1024 * 1024,  # 25MB per image (modern phone photos)
-        'max_total_storage': 200 * 1024 * 1024,  # 200MB total per session
+        # Alignment writes PNG so its warp isn't compounded by JPEG loss, and a
+        # photograph costs roughly six times as much that way. This has to cover
+        # ALIGN_MAX_FRAMES frames at full resolution (~13MB each) or the two
+        # limits contradict each other and a permitted alignment can't be stored.
+        'max_total_storage': 1024 * 1024 * 1024,  # 1GB total per session
         'max_images': 200,  # Max images per project
         'max_frames': 200,  # Max frames in animation
         'max_output_size': 200 * 1024 * 1024,  # 200MB max output

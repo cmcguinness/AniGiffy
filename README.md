@@ -30,6 +30,10 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
 - **Download Frames as PNGs**: Export the current frame images as a ZIP of PNG files. Run
   Auto-Align first to get the aligned, common-area-cropped versions. Files are numbered in
   animation order and keep the name you uploaded them under (`01_IMG_1764.png`).
+- **Lossless alignment**: Auto-Align writes its results as PNG rather than re-encoding to
+  JPEG, so the warp isn't compounded by a second round of compression loss. A frame
+  uploaded as a JPEG is replaced by a `.png`, which is roughly six times the size — hence
+  the 1GB session storage quota. Alignment refuses up front if the result wouldn't fit.
 - **Tabbed Settings UI**: Organized into Size, Transparency, and Transitions tabs
 - **Intelligent Preview System**:
   - Single "Preview" button for projects with 10 or fewer frames
@@ -127,7 +131,7 @@ Edit `config.py` to customize:
 ```python
 QUOTAS = {
     'max_upload_size': 25 * 1024 * 1024,      # 25MB per image
-    'max_total_storage': 200 * 1024 * 1024,   # 200MB total per session
+    'max_total_storage': 1024 * 1024 * 1024,  # 1GB total per session
     'max_images': 200,                         # Max images per project
     'max_frames': 200,                         # Max frames in animation
     'max_output_size': 200 * 1024 * 1024,     # 200MB max output

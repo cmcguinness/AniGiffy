@@ -247,8 +247,16 @@ async function alignFrames() {
         const data = await response.json();
 
         if (response.ok) {
-            // Files were rewritten under the same names, so force thumbnails
-            // and any preview to reload rather than serve from cache.
+            // Aligned frames are written as PNG, so anything uploaded as a
+            // JPEG now lives under a new name and our references are stale.
+            if (data.files) {
+                data.files.forEach((file, i) => {
+                    if (state.frames[i]) state.frames[i].file = file;
+                });
+            }
+
+            // Files were rewritten, so force thumbnails and any preview to
+            // reload rather than serve from cache.
             state.imageVersion++;
 
             // Every frame is now the cropped size

@@ -41,6 +41,7 @@ There is no automated test suite. Test changes manually via the browser UI and C
   `None` when no reliable motion can be estimated so `GifBuilder` falls back to a
   cross-fade.
 - `services/image_aligner.py` — OpenCV background alignment: SIFT/ORB features, RANSAC similarity
+  transform, then a common-area crop; writes results as PNG and returns the paths it wrote.
   transform against a reference frame, then a common-area crop. Streams one image at a time so
   memory stays flat regardless of frame count.
 - `services/session_manager.py` — Per-session filesystem isolation under `user_data/{session_id}/`.
@@ -85,5 +86,8 @@ There is no automated test suite. Test changes manually via the browser UI and C
 - The export archive is written to a system temp file, never the session directory: PNG is
   several times larger than the stored JPEG, so a full set would breach the session storage
   quota just by being offered for download. It is deleted once the response is sent.
-- Alignment rewrites the uploaded image files in place, so the frontend bumps `state.imageVersion`
-  to bust cached thumbnails whenever it runs.
+- Alignment rewrites the uploaded image files, so the frontend bumps `state.imageVersion`
+  to bust cached thumbnails whenever it runs. It writes PNG (avoiding a second round of
+  JPEG loss on top of the warp), so a frame uploaded as JPEG is **renamed** to `.png` and the
+  original deleted — `/api/frames/align` returns `files` with the new refs and the client must
+  adopt them, or every subsequent request 404s.

@@ -43,6 +43,22 @@ class ImageAligner:
     # The common-area search runs on a mask scaled down to this longest side.
     CROP_MASK_MAX_SIDE = 600
 
+    # Aligned frames are written as PNG so the warp is not compounded by a
+    # second round of JPEG loss: every frame here has already been resampled
+    # once, and re-encoding that as JPEG bakes the artefacts in for whatever
+    # the user does with the result afterwards.
+    #
+    # Compression 1 rather than something higher because alignment already
+    # makes two full passes over every frame and is the slowest thing the app
+    # does. On a 4025x2653 frame: 0.43s for 11.7MB at level 1, against 0.89s
+    # for 11.0MB at level 3 -- six percent of the size for twice the writing.
+    PNG_COMPRESSION = 1
+
+    # Roughly what a photograph costs per pixel as PNG at that compression,
+    # used to refuse an alignment that would not fit in the session's storage
+    # rather than discovering it partway through rewriting the files.
+    PNG_BYTES_PER_PIXEL = 1.2
+
     def __init__(self, config):
         self.config = config
 
@@ -64,7 +80,10 @@ class ImageAligner:
         """Write an image, choosing the encoder from the file extension."""
         ext = str(path).rsplit('.', 1)[-1].lower()
         ext = '.png' if ext == 'png' else '.jpg'
-        params = [cv2.IMWRITE_JPEG_QUALITY, 95] if ext == '.jpg' else []
+        if ext == '.png':
+            params = [cv2.IMWRITE_PNG_COMPRESSION, self.PNG_COMPRESSION]
+        else:
+            params = [cv2.IMWRITE_JPEG_QUALITY, 95]
         ok, buf = cv2.imencode(ext, img, params)
         if not ok:
             return False
@@ -263,19 +282,27 @@ class ImageAligner:
     # Entry point
     # ------------------------------------------------------------------
 
-    def align(self, paths, reference_index=0):
+    def align(self, paths, reference_index=0, max_output_bytes=None):
         """
         Align images so their backgrounds line up, overwriting each file.
 
         Args:
             paths: list of Paths, in frame order
             reference_index: which frame everything else is aligned onto
+            max_output_bytes: refuse rather than write if the PNGs would
+                exceed this; None to skip the check
+
+        Frames are written back as PNG, so a file that arrived as a JPEG is
+        replaced by a .png alongside it and the original removed -- meaning
+        the caller's paths are stale afterwards and must be replaced with the
+        returned ones.
 
         Returns a result dict:
             aligned:   how many frames were transformed
             skipped:   [{'index': i, 'reason': str}] for frames left as-is
             width/height: dimensions of the cropped output
             reference: index used as the reference
+            paths:     the files actually written, in frame order
         """
         if len(paths) < 2:
             return {'error': 'Need at least two frames to align'}
@@ -336,8 +363,22 @@ class ImageAligner:
         if crop is None:
             return {'error': 'Frames have too little overlap to crop to a common area'}
 
+        # The output size is only knowable once the common crop is, but it has
+        # to be checked before pass two starts: that pass deletes each source
+        # as it replaces it, so running out of room half way through would
+        # leave the set partly converted.
+        if max_output_bytes is not None:
+            crop_w, crop_h = crop[2], crop[3]
+            estimate = int(crop_w * crop_h * self.PNG_BYTES_PER_PIXEL) * len(paths)
+            if estimate > max_output_bytes:
+                return {'error': (
+                    f'Aligned frames need about {estimate / 1024 / 1024:.0f}MB as PNG '
+                    f'but only {max_output_bytes / 1024 / 1024:.0f}MB is available. '
+                    f'Remove some frames and align again.')}
+
         # Pass two: warp, crop and write, again one image at a time.
         x, y, w, h = crop
+        written = []
         for path, matrix in zip(paths, matrices):
             img = self._imread(path)
             if img is None:
@@ -348,9 +389,21 @@ class ImageAligner:
                 flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT)
             del img
 
-            if not self._imwrite(path, warped[y:y + h, x:x + w]):
-                return {'error': f'Could not write {path.name}'}
+            target = path.with_suffix('.png')
+            if not self._imwrite(target, warped[y:y + h, x:x + w]):
+                return {'error': f'Could not write {target.name}'}
             del warped
+
+            # The JPEG this replaces is only removed once its PNG is safely
+            # on disk, so a failure part way through leaves readable files
+            # either way rather than a gap in the set.
+            if target != path:
+                try:
+                    path.unlink()
+                except OSError as exc:
+                    logger.warning(f"Could not remove {path.name} after aligning: {exc}")
+
+            written.append(target)
 
         logger.info(f"Aligned {len(paths) - len(skipped)}/{len(paths)} frames "
                     f"to {w}x{h} (reference frame {reference_index})")
@@ -361,4 +414,5 @@ class ImageAligner:
             'width': w,
             'height': h,
             'reference': reference_index,
+            'paths': written,
         }
