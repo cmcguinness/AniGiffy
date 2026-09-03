@@ -128,6 +128,56 @@ class ImageProcessor:
             logger.warning(f"Could not re-save downscaled image {file_path}: {e}")
             return False
 
+    ROTATIONS = {
+        'left': Image.Transpose.ROTATE_90,     # counter-clockwise
+        'right': Image.Transpose.ROTATE_270,   # clockwise
+    }
+
+    def rotate_files(self, paths, direction):
+        """
+        Rotate stored frame images a quarter turn, rewriting each in place.
+
+        For a video shot in portrait that extracts as landscape, or a batch of
+        photos that all came in sideways. A quarter turn moves pixels without
+        resampling, so the only loss is a JPEG's re-encode; the file keeps its
+        format and name, so the caller's references stay valid. Multi-frame
+        files (animated GIF/WebP) are left alone, as re-saving them would keep
+        only the first frame.
+
+        Returns (rotated_count, (width, height) of the last frame written, error).
+        """
+        transpose = self.ROTATIONS.get(direction)
+        if transpose is None:
+            return 0, None, f"Unknown rotation direction: {direction}"
+
+        rotated = 0
+        size = None
+        for path in paths:
+            path = Path(path)
+            try:
+                with Image.open(path) as original:
+                    fmt = original.format
+                    if fmt in self.SAVE_AS_JPEG:
+                        fmt = 'JPEG'
+                    if getattr(original, 'n_frames', 1) > 1:
+                        logger.info(f"Not rotating multi-frame {fmt}: {path.name}")
+                        continue
+                    img = original.transpose(transpose)
+
+                if fmt == 'JPEG':
+                    if img.mode not in ('RGB', 'L', 'CMYK'):
+                        img = img.convert('RGB')
+                    img.save(path, format=fmt, quality=95)
+                else:
+                    img.save(path, format=fmt)
+                size = img.size
+                rotated += 1
+            except Exception as e:
+                logger.error(f"Could not rotate {path.name}: {e}")
+                return rotated, size, f"Could not rotate {path.name}"
+
+        return rotated, size, None
+
     def resize_image(self, img, target_width, target_height, fit_mode='contain'):
         """
         Resize image to target dimensions

@@ -102,6 +102,8 @@ function initializeEventListeners() {
 
     // Video import
     document.getElementById('alignFramesBtn').addEventListener('click', alignFrames);
+    document.getElementById('rotateLeftBtn').addEventListener('click', () => rotateFrames('left'));
+    document.getElementById('rotateRightBtn').addEventListener('click', () => rotateFrames('right'));
     document.getElementById('exportFramesBtn').addEventListener('click', exportFrames);
 
     document.getElementById('importVideoBtn').addEventListener('click', () => {
@@ -221,6 +223,53 @@ async function exportFrames() {
     } finally {
         button.disabled = false;
         button.innerHTML = original;
+    }
+}
+
+// Rotate every frame a quarter turn. Files are rewritten under the same
+// name, so only the cached thumbnails and the output dimensions change.
+async function rotateFrames(direction) {
+    if (state.frames.length === 0) {
+        showToast('Add some frames before rotating', 'warning');
+        return;
+    }
+
+    const buttons = [document.getElementById('rotateLeftBtn'), document.getElementById('rotateRightBtn')];
+    buttons.forEach(b => b.disabled = true);
+
+    try {
+        const response = await fetch('/api/frames/rotate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                frames: state.frames.map(f => ({ file: f.file })),
+                direction
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            state.imageVersion++;
+
+            // Width and height have swapped places
+            if (state.settings.originalWidth && state.settings.originalHeight) {
+                [state.settings.originalWidth, state.settings.originalHeight] =
+                    [state.settings.originalHeight, state.settings.originalWidth];
+                recalcDimensionsFromScale();
+            }
+
+            stopPreview();
+            updateUI();
+            showToast(data.message, 'success');
+        } else {
+            showToast(`Rotation failed: ${data.message}`, 'danger');
+        }
+    } catch (error) {
+        console.error('Rotation error:', error);
+        showToast('Error rotating frames', 'danger');
+    } finally {
+        buttons.forEach(b => b.disabled = false);
     }
 }
 

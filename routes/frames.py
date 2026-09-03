@@ -461,6 +461,52 @@ def export_frames():
         }), 500
 
 
+@bp.route('/rotate', methods=['POST'])
+@limiter.limit(config.RATE_LIMITS['rotate'])
+def rotate_frames():
+    """Rotate every frame a quarter turn left or right, rewriting the files in place"""
+    try:
+        data = request.get_json() or {}
+        frames = data.get('frames', [])
+        direction = data.get('direction')
+
+        if not frames:
+            return jsonify({'error': 'No frames', 'message': 'There are no frames to rotate'}), 400
+        if direction not in ('left', 'right'):
+            return jsonify({'error': 'Invalid direction', 'message': "Direction must be 'left' or 'right'"}), 400
+
+        # Resolve every frame to a validated path before touching any of them
+        paths = []
+        for frame in frames:
+            file_ref = frame.get('file') if isinstance(frame, dict) else frame
+            if not file_ref:
+                return jsonify({'error': 'Invalid frame', 'message': 'Frame has no file'}), 400
+            path = current_app.session_manager.safe_path(session['id'], file_ref)
+            if not path.exists():
+                return jsonify({
+                    'error': 'File not found',
+                    'message': f'Image file does not exist: {file_ref}'
+                }), 404
+            paths.append(path)
+
+        rotated, size, error = current_app.image_processor.rotate_files(paths, direction)
+        if error:
+            return jsonify({'error': 'Rotation failed', 'message': error}), 422
+
+        logger.info(f"Rotated {rotated} of {len(paths)} frames {direction}")
+        return jsonify({
+            'success': True,
+            'rotated': rotated,
+            'width': size[0] if size else None,
+            'height': size[1] if size else None,
+            'message': f"Rotated {rotated} frame{'s' if rotated != 1 else ''} {direction}"
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Rotation failed: {e}")
+        return jsonify({'error': 'Rotation failed', 'message': str(e)}), 500
+
+
 def _export_name(index, frame):
     """
     Name one exported file.

@@ -63,6 +63,7 @@ There is no automated test suite. Test changes manually via the browser UI and C
 
 - `POST /api/frames/upload` — Upload images
 - `POST /api/frames/align` — Align frame backgrounds (rewrites the image files in place)
+- `POST /api/frames/rotate` — Rotate all frames a quarter turn left/right (rewrites in place, same name and format)
 - `POST /api/frames/export` — Download the current frame images as a ZIP of PNGs
 - `POST /api/generate/preview` — Generate preview GIF (first 10 frames or all)
 - `POST /api/generate/full` — Generate full GIF

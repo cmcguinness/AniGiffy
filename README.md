@@ -86,6 +86,8 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
    onto the first one so their backgrounds line up, then crop to the area they all cover. Built
    for a series shot from nearly the same spot; frames that don't match are reported and left
    alone. This rewrites the uploaded images, so re-running it crops further each time
+   - **Rotate**: the two arrow buttons turn every frame a quarter turn left or right, for a
+   portrait video that imported as landscape or a batch of sideways photos
 4. **Adjust Timing**: Set the duration (in milliseconds) for each frame, or use **Apply All** to
    give every frame the same duration
 5. **Configure Settings** (organized in tabs):
@@ -162,6 +164,7 @@ RATE_LIMITS = {
     'general_api': '100 per minute',
     'video_upload': '3 per minute, 10 per hour',
     'align': '3 per minute, 20 per hour',
+    'rotate': '10 per minute, 60 per hour',
     'export': '6 per minute, 30 per hour',
 }
 ```
@@ -221,6 +224,7 @@ AniGiffy/
 | GET | `/` | Main editor interface |
 | POST | `/api/frames/upload` | Upload an image |
 | POST | `/api/frames/align` | Align frame backgrounds (rewrites the image files) |
+| POST | `/api/frames/rotate` | Rotate every frame a quarter turn left or right (rewrites the image files) |
 | POST | `/api/frames/add` | Add a frame to the project |
 | PUT | `/api/frames/<frame_id>` | Update a frame's properties |
 | DELETE | `/api/frames/<frame_id>` | Delete a frame |
