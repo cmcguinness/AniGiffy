@@ -73,7 +73,7 @@ There is no automated test suite. Test changes manually via the browser UI and C
 ## Important Conventions
 
 - Route handlers in `routes/` should only handle request/response flow — delegate logic to `services/`.
-- GIF palette reduction goes through `GifBuilder._quantize` (octree, not Pillow's default median cut — see its docstring). The transparent path must use `_quantize_reserving_zero`, since index 0 is declared transparent on save and no quantiser reserves it for you.
+- GIF palette reduction goes through `GifBuilder._quantize` (octree, not Pillow's default median cut — see its docstring). The transparent path must use `_quantize_reserving_zero`, since index 0 is declared transparent on save and no quantiser reserves it for you. Dithering (`settings.dither`: none / ordered / floyd-steinberg, listed in `DITHER_MODES`) is applied there too: ordered is a Bayer offset before palette mapping and is the only mode safe for animation, since it is position-locked and doesn't shimmer between frames.
 - All image processing goes through `ImageProcessor`; all GIF assembly through `GifBuilder`; all alignment through `ImageAligner`; all motion in-betweening through `FrameInterpolator`.
 - The minimum frame delay is format-dependent (`GIF_MIN_FRAME_MS` / `APNG_MIN_FRAME_MS` in
   `gif_builder.py`), and transition steps are capped so no frame falls below it. GIF's 20ms

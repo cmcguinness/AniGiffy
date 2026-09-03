@@ -34,7 +34,7 @@ class Project:
     def __init__(self, name, width=800, height=600, loop=0, default_duration=100,
                  transparent=False, background_color='#FFFFFF', alpha_threshold=128,
                  transition_type='crossfade', transition_time=0, transition_steps=5,
-                 ping_pong=False):
+                 ping_pong=False, dither='none'):
         self.name = name
         self.created = datetime.utcnow().isoformat()
         self.modified = datetime.utcnow().isoformat()
@@ -49,7 +49,8 @@ class Project:
             'transitionType': transition_type,
             'transitionTime': transition_time,
             'transitionSteps': transition_steps,
-            'pingPong': ping_pong
+            'pingPong': ping_pong,
+            'dither': dither
         }
         self.frames = []
 
@@ -118,6 +119,8 @@ class Project:
             self.settings['transitionSteps'] = int(kwargs['transitionSteps'])
         if 'pingPong' in kwargs:
             self.settings['pingPong'] = bool(kwargs['pingPong'])
+        if 'dither' in kwargs:
+            self.settings['dither'] = str(kwargs['dither'])
 
         self.update_modified()
 
@@ -160,7 +163,8 @@ class Project:
             transition_type=settings.get('transitionType', 'crossfade'),
             transition_time=settings.get('transitionTime', 0),
             transition_steps=settings.get('transitionSteps', 5),
-            ping_pong=settings.get('pingPong', False)
+            ping_pong=settings.get('pingPong', False),
+            dither=settings.get('dither', 'none')
         )
 
         project.created = data.get('created', datetime.utcnow().isoformat())

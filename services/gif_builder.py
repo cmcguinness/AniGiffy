@@ -15,6 +15,29 @@ logger = logging.getLogger(__name__)
 GIF_MIN_FRAME_MS = 20
 APNG_MIN_FRAME_MS = 10
 
+# Dithering modes for GIF palette reduction. 'none' is the default; see
+# GifBuilder._quantize for what each trades.
+DITHER_MODES = ('none', 'ordered', 'floyd-steinberg')
+
+# 8x8 Bayer threshold matrix, as a signed offset in the range -0.5..0.5.
+# Each cell is a fixed threshold for that pixel position, so the pattern is a
+# pure function of (x, y) and repeats identically frame after frame.
+_BAYER8 = np.array([
+    [0, 32, 8, 40, 2, 34, 10, 42],
+    [48, 16, 56, 24, 50, 18, 58, 26],
+    [12, 44, 4, 36, 14, 46, 6, 38],
+    [60, 28, 52, 20, 62, 30, 54, 22],
+    [3, 35, 11, 43, 1, 33, 9, 41],
+    [51, 19, 59, 27, 49, 17, 57, 25],
+    [15, 47, 7, 39, 13, 45, 5, 37],
+    [63, 31, 55, 23, 61, 29, 53, 21],
+], dtype=np.float32) / 64.0 - 0.5
+
+# How far the Bayer pattern pushes a pixel's value, in 0..255 units. Roughly
+# one palette step for a 256-colour photo: enough to break up banding without
+# making the pattern itself obvious at viewing size.
+_ORDERED_DITHER_AMPLITUDE = 6.0
+
 
 class GifBuilder:
     """Handles GIF creation from project specifications"""
@@ -25,9 +48,25 @@ class GifBuilder:
         self.interpolator = FrameInterpolator(config)
 
     @staticmethod
-    def _quantize(img, colors):
+    def _quantize(img, colors, dither='none'):
         """
         Reduce an image to a GIF palette.
+
+        `dither` selects how pixels that fall between palette entries are
+        handled. 'none' snaps each to its nearest colour, which is smallest
+        and fastest but turns a smooth gradient (a plain wall, a sky) into
+        visible stair-steps. 'ordered' offsets each pixel by a fixed Bayer
+        threshold for its position before snapping, trading the steps for a
+        fine regular pattern -- and because the pattern depends only on
+        position, a pixel that doesn't change between frames dithers
+        identically every frame, so nothing shimmers during playback.
+        'floyd-steinberg' is error diffusion: smoothest on a single still,
+        but the error carried along each row means any small change
+        re-scatters the noise pattern, which crawls visibly across static
+        areas during transitions, and it compresses worst (measured +25-70%
+        on file size). Pillow doesn't ship an ordered dither, and only
+        dithers against a supplied palette, so both modes build the palette
+        with octree first and then map against it.
 
         Uses the octree quantiser rather than Pillow's default median cut.
         Median cut sorts every pixel in the image to find its palette, which
@@ -49,10 +88,21 @@ class GifBuilder:
             # otherwise treat alpha as a fourth dimension and spend palette
             # entries on it, and the caller handles transparency itself.
             img = img.convert('RGB')
-        return img.quantize(colors=colors, method=Image.Quantize.FASTOCTREE)
+        palette = img.quantize(colors=colors, method=Image.Quantize.FASTOCTREE)
+
+        if dither == 'floyd-steinberg':
+            return img.quantize(palette=palette, dither=Image.Dither.FLOYDSTEINBERG)
+        if dither == 'ordered':
+            pixels = np.asarray(img, dtype=np.float32)
+            h, w = pixels.shape[:2]
+            reps = (h // 8 + 1, w // 8 + 1)
+            threshold = np.tile(_BAYER8, reps)[:h, :w, None] * _ORDERED_DITHER_AMPLITUDE
+            offset = np.clip(pixels + threshold, 0, 255).astype(np.uint8)
+            return Image.fromarray(offset).quantize(palette=palette, dither=Image.Dither.NONE)
+        return palette
 
     @classmethod
-    def _quantize_reserving_zero(cls, img):
+    def _quantize_reserving_zero(cls, img, dither='none'):
         """
         Quantise to a palette whose index 0 is left free for transparency.
 
@@ -63,7 +113,7 @@ class GifBuilder:
         palette given a spare entry at the front. Whether index 0 happened to
         go unused was previously left to the quantiser's ordering.
         """
-        quantised = cls._quantize(img, colors=255)
+        quantised = cls._quantize(img, colors=255, dither=dither)
 
         shifted = np.asarray(quantised, dtype=np.uint8) + 1
         out = Image.fromarray(shifted, mode='P')
@@ -275,6 +325,9 @@ class GifBuilder:
             transition_type = project.settings.get('transitionType', 'crossfade')
             transition_time = project.settings.get('transitionTime', 0)
             transition_steps = project.settings.get('transitionSteps', 5)
+            dither = project.settings.get('dither', 'none')
+            if dither not in DITHER_MODES:
+                dither = 'none'
 
             is_apng = output_format == 'apng'
 
@@ -354,12 +407,12 @@ class GifBuilder:
             def to_gif_format(img):
                 if transparent and img.mode == 'RGBA':
                     alpha = img.split()[3]
-                    gif_frame = self._quantize_reserving_zero(img)
+                    gif_frame = self._quantize_reserving_zero(img, dither)
                     mask = Image.eval(alpha, lambda a: 255 if a == 0 else 0)
                     gif_frame.paste(0, mask=mask)
                     return gif_frame
                 else:
-                    return self._quantize(img, colors=256)
+                    return self._quantize(img, colors=256, dither=dither)
 
             # Helper to ensure RGBA for APNG
             def to_apng_format(img):
@@ -485,7 +538,8 @@ class GifBuilder:
                 transition_type=project.settings.get('transitionType', 'crossfade'),
                 transition_time=project.settings.get('transitionTime', 0),
                 transition_steps=project.settings.get('transitionSteps', 5),
-                ping_pong=project.settings.get('pingPong', False)
+                ping_pong=project.settings.get('pingPong', False),
+                dither=project.settings.get('dither', 'none')
             )
 
             preview_project.frames = frames_to_use

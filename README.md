@@ -94,6 +94,11 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
      - **Output Scale**: 100%, 75%, 66%, 50%, 33%, 25% or 10% of the original size — or set width/height directly
      - **Loop Count**: 0 for infinite loop, or specify a number of plays
      - **Ping-pong**: Play forward then backward (A, B, C, D, C, B) before looping
+     - **Dithering** (GIF only): how the 256-colour palette handles smooth gradients.
+       *None* is smallest but can leave stair-steps on plain walls and skies. *Ordered*
+       breaks those up with a fixed Bayer pattern that stays put frame to frame, so it is
+       the safe choice for animation. *Floyd–Steinberg* is smoothest on a single image but
+       its noise pattern crawls during transitions and makes the largest file
    - **Transparency Tab**:
      - **Transparent GIF**: Enable for transparency support
      - **Background Color**: Fill color for non-transparent GIFs
