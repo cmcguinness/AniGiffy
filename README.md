@@ -34,7 +34,7 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
   JPEG, so the warp isn't compounded by a second round of compression loss. A frame
   uploaded as a JPEG is replaced by a `.png`, which is roughly six times the size — hence
   the 1GB session storage quota. Alignment refuses up front if the result wouldn't fit.
-- **Tabbed Settings UI**: Organized into Size, Transparency, and Transitions tabs
+- **Tabbed Settings UI**: Organized into Size, Advanced, and Transitions tabs
 - **Intelligent Preview System**:
   - Single "Preview" button for projects with 10 or fewer frames
   - Separate "Quick Preview" and "Full Preview" buttons for larger projects
@@ -93,16 +93,16 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
      - **Format**: Animated GIF or Animated PNG
      - **Output Scale**: 100%, 75%, 66%, 50%, 33%, 25% or 10% of the original size — or set width/height directly
      - **Loop Count**: 0 for infinite loop, or specify a number of plays
+   - **Advanced Tab**:
+     - **Transparent GIF**: Enable for transparency support
+     - **Background Color**: Fill color for non-transparent GIFs
+     - **Alpha Threshold**: Pixels below this opacity become transparent
      - **Ping-pong**: Play forward then backward (A, B, C, D, C, B) before looping
      - **Dithering** (GIF only): how the 256-colour palette handles smooth gradients.
        *None* is smallest but can leave stair-steps on plain walls and skies. *Ordered*
        breaks those up with a fixed Bayer pattern that stays put frame to frame, so it is
        the safe choice for animation. *Floyd–Steinberg* is smoothest on a single image but
        its noise pattern crawls during transitions and makes the largest file
-   - **Transparency Tab**:
-     - **Transparent GIF**: Enable for transparency support
-     - **Background Color**: Fill color for non-transparent GIFs
-     - **Alpha Threshold**: Pixels below this opacity become transparent
    - **Transitions Tab**:
      - **Transition Type**: Choose Cross-fade, Motion Tween, Motion Morph, Fade to
        White/Black, or Carousel (Left/Right/Up/Down)

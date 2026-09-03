@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row mt-2">
     <!-- Left Panel - Frame List -->
-    <div class="col-md-4">
+    <div class="col-md-4 frame-panel">
         <div class="card">
             <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
@@ -23,7 +23,7 @@
                     </button>
                 </div>
             </div>
-            <div class="card-body" id="dropZone">
+            <div class="card-body d-flex flex-column" id="dropZone">
                 <!-- Hidden file inputs -->
                 <input type="file" id="imageUpload" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp,.jpg,.jpeg,.jpe,.jfif,.png,.gif,.webp" multiple>
                 <input type="file" id="videoUpload" class="d-none" accept=".mp4,.mov">
@@ -88,8 +88,8 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="transparency-tab" data-bs-toggle="tab" data-bs-target="#transparency" type="button" role="tab" aria-controls="transparency" aria-selected="false">
-                            <i class="bi bi-transparency"></i> Transparency
+                        <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">
+                            <i class="bi bi-sliders"></i> Advanced
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -137,15 +137,6 @@
                                 <small class="form-text text-muted">0 = infinite</small>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="dither" class="form-label">Dithering</label>
-                                <select class="form-select" id="dither">
-                                    <option value="none">None (smallest file)</option>
-                                    <option value="ordered">Ordered (smooth gradients, stable)</option>
-                                    <option value="floyd-steinberg">Floyd–Steinberg (stills only)</option>
-                                </select>
-                                <small class="form-text text-muted">GIF only. Fixes stair-stepped gradients</small>
-                            </div>
-                            <div class="col-md-4 mb-3">
                                 <label for="defaultDuration" class="form-label">Frame Duration (ms)</label>
                                 <div class="input-group">
                                     <input type="number" class="form-control" id="defaultDuration" value="100" min="1">
@@ -154,23 +145,10 @@
                                 <small class="form-text text-muted">Default for new frames</small>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="pingPong">
-                                    <label class="form-check-label" for="pingPong">
-                                        Ping-pong (play forward, then backward)
-                                    </label>
-                                </div>
-                                <small class="form-text text-muted">
-                                    Frames A, B, C, D play as A, B, C, D, C, B before looping
-                                </small>
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- Transparency Tab -->
-                    <div class="tab-pane fade" id="transparency" role="tabpanel" aria-labelledby="transparency-tab">
+                    <!-- Advanced Tab: transparency, dithering, playback order -->
+                    <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <div class="form-check form-switch">
@@ -186,6 +164,28 @@
                                 <label for="alphaThreshold" class="form-label">Alpha Threshold: <span id="alphaThresholdValue">128</span></label>
                                 <input type="range" class="form-range" id="alphaThreshold" min="0" max="255" value="128">
                                 <small class="form-text text-muted">Pixels below this become transparent</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="dither" class="form-label">Dithering</label>
+                                <select class="form-select" id="dither">
+                                    <option value="none">None (smallest file)</option>
+                                    <option value="ordered">Ordered (smooth gradients, stable)</option>
+                                    <option value="floyd-steinberg">Floyd–Steinberg (stills only)</option>
+                                </select>
+                                <small class="form-text text-muted">GIF only. Fixes stair-stepped gradients</small>
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="pingPong">
+                                    <label class="form-check-label" for="pingPong">
+                                        Ping-pong (play forward, then backward)
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    Frames A, B, C, D play as A, B, C, D, C, B before looping
+                                </small>
                             </div>
                         </div>
                     </div>

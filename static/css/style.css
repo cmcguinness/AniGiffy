@@ -18,9 +18,34 @@ body {
     border: 2px dashed #0d6efd !important;
 }
 
-/* Frame List */
+/* Frame panel. The row is as tall as the preview + settings column, and the
+   frames card should fill exactly that height with the list scrolling inside
+   it. Positioning the card absolutely within its column means the frames
+   never add to the row's height themselves -- a plain h-100 card would,
+   because the percentage falls back to auto while the row is being sized. */
+.frame-panel {
+    position: relative;
+}
+
+@media (min-width: 768px) {
+    .frame-panel > .card {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(var(--bs-gutter-x) * 0.5);
+        right: calc(var(--bs-gutter-x) * 0.5);
+    }
+}
+
+/* .card is itself a flex column, so its body must be allowed to shrink
+   below its content or the list can never scroll. */
+.frame-panel .card-body {
+    min-height: 0;
+}
+
 .frame-list {
-    max-height: calc(100vh - 280px);
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -187,6 +212,7 @@ body {
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .frame-list {
+        /* Columns stack, so cap the list rather than pushing settings down */
         max-height: 400px;
     }
 
