@@ -23,10 +23,6 @@
                             title="Automatically shift, scale and rotate frames so their backgrounds line up">
                         <i class="bi bi-crosshair"></i> Auto-Align
                     </button>
-                    <button id="exportFramesBtn" class="btn btn-sm btn-outline-light"
-                            title="Download the current frame images as PNG files in a ZIP">
-                        <i class="bi bi-file-earmark-zip"></i> Download PNGs
-                    </button>
                     <button id="importVideoBtn" class="btn btn-sm btn-outline-light" title="Import frames from a video file">
                         <i class="bi bi-camera-video"></i> Import Video
                     </button>
@@ -47,10 +43,14 @@
     <div class="col-md-8">
         <!-- Preview Card -->
         <div class="card mb-3">
-            <div class="card-header bg-secondary text-white">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="bi bi-eye"></i> Preview
                 </h5>
+                <button id="exportFramesBtn" class="btn btn-sm btn-outline-light"
+                        title="Download the current frame images as PNG files in a ZIP">
+                    <i class="bi bi-file-earmark-zip"></i> Download PNGs
+                </button>
             </div>
             <div class="card-body text-center">
                 <div id="previewContainer" class="preview-container">
