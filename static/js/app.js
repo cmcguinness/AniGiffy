@@ -450,12 +450,21 @@ function applyDurationToAll() {
     showToast(`Set all ${state.frames.length} frames to ${duration}ms`, 'info');
 }
 
+// Deletes immediately and offers Undo, rather than asking first with confirm():
+// once the browser is told to suppress a page's dialogs, confirm() returns
+// false without showing anything and the trash icon silently stops working.
 function deleteFrame(frameId) {
-    if (confirm('Remove this frame?')) {
-        state.frames = state.frames.filter(f => f.id !== frameId);
-        updateUI();
-        showToast('Frame removed', 'info');
-    }
+    const index = state.frames.findIndex(f => f.id === frameId);
+    if (index === -1) return;
+    const [removed] = state.frames.splice(index, 1);
+    updateUI();
+    showToast('Frame removed', 'info', {
+        label: 'Undo',
+        onClick: () => {
+            state.frames.splice(Math.min(index, state.frames.length), 0, removed);
+            updateUI();
+        }
+    });
 }
 
 // Drag and Drop
@@ -839,7 +848,7 @@ function updateUI() {
 }
 
 // Utility Functions
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', action = null) {
     const toastContainer = document.getElementById('toastContainer');
 
     const toastId = 'toast-' + Date.now();
@@ -849,8 +858,9 @@ function showToast(message, type = 'info') {
                 <strong class="me-auto">AniGiffy</strong>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
             </div>
-            <div class="toast-body">
-                ${message}
+            <div class="toast-body d-flex justify-content-between align-items-center">
+                <span>${message}</span>
+                ${action ? `<button type="button" class="btn btn-sm btn-outline-secondary toast-action">${action.label}</button>` : ''}
             </div>
         </div>
     `;
@@ -858,8 +868,15 @@ function showToast(message, type = 'info') {
     toastContainer.insertAdjacentHTML('beforeend', toastHTML);
 
     const toastElement = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+    const toast = new bootstrap.Toast(toastElement, { delay: action ? 6000 : 3000 });
     toast.show();
+
+    if (action) {
+        toastElement.querySelector('.toast-action').addEventListener('click', () => {
+            action.onClick();
+            toast.hide();
+        }, { once: true });
+    }
 
     toastElement.addEventListener('hidden.bs.toast', function() {
         toastElement.remove();
