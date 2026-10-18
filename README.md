@@ -14,6 +14,10 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
   don't match the reference are reported and left untouched
 - **Auto-Detect Dimensions**: Output size automatically set from the largest uploaded image
 - **Auto-Detect Transparency**: Transparency mode enabled automatically if first image has alpha channel
+- **Edit a Single Frame**: Each frame card has a download icon, which saves that frame's image
+  as stored (no re-encode), and a replace icon, which swaps in a new image for just that frame.
+  The frame keeps its position and duration, nothing else in the sequence changes, and the toast
+  offers Undo. You're warned if the replacement isn't the same size as the image it replaced
 - **Crop**: Trim the same area from every frame by dragging a box on the first frame or typing
   how many pixels to take off each edge, with an optional aspect-ratio lock. The crop is a
   setting applied when the animation is built, so the uploaded images are never changed and it
@@ -219,7 +223,8 @@ AniGiffy/
 │   ├── css/style.css      # Custom styles
 │   └── js/
 │       ├── app.js         # Frontend JavaScript
-│       └── crop.js        # Crop dialog (Cropper.js) and crop state
+│       ├── crop.js        # Crop dialog (Cropper.js) and crop state
+│       └── frame_tools.js # Per-frame download and replace
 ├── user_data/             # Per-session storage (auto-created)
 └── templates/
     ├── base.html          # Base template with Bootstrap 5

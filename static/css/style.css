@@ -87,6 +87,22 @@ body {
     width: 80px;
 }
 
+.frame-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.frame-action {
+    color: #6c757d;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+.frame-action:hover {
+    color: #0d6efd;
+}
+
 .frame-delete {
     color: #dc3545;
     cursor: pointer;

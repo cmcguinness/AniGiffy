@@ -32,6 +32,7 @@
                 <!-- Hidden file inputs -->
                 <input type="file" id="imageUpload" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp,.jpg,.jpeg,.jpe,.jfif,.png,.gif,.webp" multiple>
                 <input type="file" id="videoUpload" class="d-none" accept=".mp4,.mov">
+                <input type="file" id="replaceUpload" class="d-none" accept="image/png,image/jpeg,image/gif,image/webp,.jpg,.jpeg,.jpe,.jfif,.png,.gif,.webp">
 
                 <!-- Frame List -->
                 <div id="frameList" class="frame-list"></div>
@@ -371,4 +372,5 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script src="{{ url_for('static', filename='js/crop.js') }}"></script>
+<script src="{{ url_for('static', filename='js/frame_tools.js') }}"></script>
 {% endblock %}

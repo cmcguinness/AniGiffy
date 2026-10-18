@@ -412,7 +412,11 @@ function createFrameElement(frame, index) {
                 <input type="number" class="form-control form-control-sm frame-duration"
                        value="${frame.duration}" min="1" data-frame-id="${frame.id}">
             </div>
-            <i class="bi bi-trash frame-delete" data-frame-id="${frame.id}"></i>
+            <div class="frame-actions">
+                <i class="bi bi-download frame-action frame-download" title="Download this frame's image"></i>
+                <i class="bi bi-arrow-repeat frame-action frame-replace" title="Replace this frame with another image"></i>
+                <i class="bi bi-trash frame-delete" data-frame-id="${frame.id}" title="Remove this frame"></i>
+            </div>
         </div>
     `;
 
@@ -427,6 +431,10 @@ function createFrameElement(frame, index) {
     durationInput.addEventListener('change', function() {
         updateFrameDuration(this.dataset.frameId, this.value);
     });
+
+    // Per-frame download and replace (frame_tools.js)
+    div.querySelector('.frame-download').addEventListener('click', () => downloadFrame(frame.id));
+    div.querySelector('.frame-replace').addEventListener('click', () => startReplaceFrame(frame.id));
 
     // Delete handler
     const deleteBtn = div.querySelector('.frame-delete');

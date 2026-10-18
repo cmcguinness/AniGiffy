@@ -56,6 +56,9 @@ There is no automated test suite. Test changes manually via the browser UI and C
 - `templates/index.html` — Main editor: two-panel layout with frame list (left) and preview+settings tabs (right).
 - `static/js/crop.js` — Crop dialog (Cropper.js 1.6 from jsdelivr) and the crop state helpers
   `app.js` calls (`getCroppedSourceDimensions`, `rotateCrop`, `hasCrop`, `updateCropSummary`).
+- `static/js/frame_tools.js` — Per-frame download and replace. Replace uploads through
+  `/api/frames/upload` and repoints the existing frame's `file`, keeping its id, position and
+  duration; the old file is left on disk so Undo can restore it.
 - `static/js/app.js` — All frontend logic: state management, drag-and-drop, API calls via Fetch, DOM updates. ~1,070 lines — over the 1000-line guideline, so new UI goes in its own file (as `crop.js` does).
 - `static/css/style.css` — Custom styles for drag-drop, frames, preview area.
 
