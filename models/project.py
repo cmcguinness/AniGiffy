@@ -34,7 +34,7 @@ class Project:
     def __init__(self, name, width=800, height=600, loop=0, default_duration=100,
                  transparent=False, background_color='#FFFFFF', alpha_threshold=128,
                  transition_type='crossfade', transition_time=0, transition_steps=5,
-                 ping_pong=False, dither='none'):
+                 ping_pong=False, dither='none', crop=None):
         self.name = name
         self.created = datetime.utcnow().isoformat()
         self.modified = datetime.utcnow().isoformat()
@@ -50,7 +50,9 @@ class Project:
             'transitionTime': transition_time,
             'transitionSteps': transition_steps,
             'pingPong': ping_pong,
-            'dither': dither
+            'dither': dither,
+            # Share of each edge to trim, as fractions: {left, top, right, bottom}
+            'crop': crop
         }
         self.frames = []
 
@@ -121,6 +123,8 @@ class Project:
             self.settings['pingPong'] = bool(kwargs['pingPong'])
         if 'dither' in kwargs:
             self.settings['dither'] = str(kwargs['dither'])
+        if 'crop' in kwargs:
+            self.settings['crop'] = kwargs['crop']
 
         self.update_modified()
 
@@ -164,7 +168,8 @@ class Project:
             transition_time=settings.get('transitionTime', 0),
             transition_steps=settings.get('transitionSteps', 5),
             ping_pong=settings.get('pingPong', False),
-            dither=settings.get('dither', 'none')
+            dither=settings.get('dither', 'none'),
+            crop=settings.get('crop')
         )
 
         project.created = data.get('created', datetime.utcnow().isoformat())

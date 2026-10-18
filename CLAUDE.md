@@ -54,7 +54,9 @@ There is no automated test suite. Test changes manually via the browser UI and C
 
 - `templates/base.html` — Base layout with CDN-loaded Bootstrap 5.3 and Bootstrap Icons.
 - `templates/index.html` — Main editor: two-panel layout with frame list (left) and preview+settings tabs (right).
-- `static/js/app.js` — All frontend logic: state management, drag-and-drop, API calls via Fetch, DOM updates. Single-file client app (~900 lines — approaching the 1000-line guideline).
+- `static/js/crop.js` — Crop dialog (Cropper.js 1.6 from jsdelivr) and the crop state helpers
+  `app.js` calls (`getCroppedSourceDimensions`, `rotateCrop`, `hasCrop`, `updateCropSummary`).
+- `static/js/app.js` — All frontend logic: state management, drag-and-drop, API calls via Fetch, DOM updates. ~1,070 lines — over the 1000-line guideline, so new UI goes in its own file (as `crop.js` does).
 - `static/css/style.css` — Custom styles for drag-drop, frames, preview area.
 
 **Data Flow:** Client-side state (frames, settings) is sent with each API call. Server is mostly stateless — session data lives on the filesystem under `user_data/`. No database.
@@ -82,6 +84,13 @@ There is no automated test suite. Test changes manually via the browser UI and C
   allows far more steps, which is what the motion transitions want.
 - Session isolation: each user gets a directory under `user_data/{session_id}/` with `uploads/` and `output/` subdirectories. `SessionManager` validates paths to prevent directory traversal.
 - Quotas and rate limits are configured in `config.py`, which is authoritative; the README mirrors those values and should be updated alongside them. The `@limiter.limit(...)` decorators in `routes/` read `config.RATE_LIMITS` — never inline a limit string there, or the config silently stops being the source of truth.
+- Crop is a setting, not a file rewrite: `settings.crop` holds the share of each edge to trim
+  (`{left, top, right, bottom}`, fractions 0-1) so one crop fits frames of any size and survives
+  oversized uploads being downscaled. `ImageProcessor.prepare_frame` applies it before the resize,
+  and the client derives Width/Height from the cropped size. Rotate turns the crop with the frames;
+  Auto-Align clears it.
+- The CSP set in `app.py` only allows scripts and styles from `cdn.jsdelivr.net` — load any new
+  CDN library from there.
 - Frontend uses no framework — vanilla JS with direct DOM manipulation.
 - All frontend dependencies are CDN-loaded (Bootstrap, Bootstrap Icons) — no npm/node build step.
 - The export archive is written to a system temp file, never the session directory: PNG is

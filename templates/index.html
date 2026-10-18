@@ -139,6 +139,17 @@
                                 <label for="outputHeight" class="form-label">Height</label>
                                 <input type="number" class="form-control" id="outputHeight" min="1" max="4096" placeholder="-">
                             </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Crop</label>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <button class="btn btn-outline-secondary btn-sm" type="button" id="openCropBtn"
+                                            title="Trim the same area from every frame before it is resized">
+                                        <i class="bi bi-crop"></i> Crop…
+                                    </button>
+                                    <button class="btn btn-link btn-sm d-none" type="button" id="clearCropBtn">Clear</button>
+                                    <small class="text-muted" id="cropSummary">None — full frame</small>
+                                </div>
+                            </div>
                             <div class="col-md-4 mb-3">
                                 <label for="loop" class="form-label">Loop Count</label>
                                 <input type="number" class="form-control" id="loop" value="0" min="0">
@@ -292,4 +303,71 @@
         </div>
     </div>
 </div>
+
+<!-- Crop Modal -->
+<div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="cropModalLabel"><i class="bi bi-crop"></i> Crop All Frames</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2">
+                    Drag the box on the first frame, or type how many pixels to trim from each edge.
+                    The same area is cropped from every frame, and the output size is then applied to the cropped image.
+                </p>
+                <div class="crop-stage mb-3">
+                    <img id="cropImage" alt="First frame">
+                </div>
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-2">
+                        <label for="crop-left" class="form-label small mb-1">Left</label>
+                        <input type="number" class="form-control form-control-sm" id="crop-left" min="0" value="0">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label for="crop-right" class="form-label small mb-1">Right</label>
+                        <input type="number" class="form-control form-control-sm" id="crop-right" min="0" value="0">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label for="crop-top" class="form-label small mb-1">Top</label>
+                        <input type="number" class="form-control form-control-sm" id="crop-top" min="0" value="0">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label for="crop-bottom" class="form-label small mb-1">Bottom</label>
+                        <input type="number" class="form-control form-control-sm" id="crop-bottom" min="0" value="0">
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="cropAspect" class="form-label small mb-1">Aspect ratio</label>
+                        <select class="form-select form-select-sm" id="cropAspect">
+                            <option value="NaN">Free</option>
+                            <option value="1">1:1</option>
+                            <option value="1.3333333">4:3</option>
+                            <option value="0.75">3:4</option>
+                            <option value="1.7777778">16:9</option>
+                            <option value="0.5625">9:16</option>
+                        </select>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">Result: <span id="cropResultSize">-</span></small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-auto" id="resetCropBtn">Full Frame</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyCropBtn">
+                    <i class="bi bi-check-lg"></i> Apply Crop
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+<script src="{{ url_for('static', filename='js/crop.js') }}"></script>
 {% endblock %}

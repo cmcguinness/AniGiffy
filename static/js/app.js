@@ -16,7 +16,9 @@ const state = {
         transitionSteps: 5,
         outputFormat: 'gif',
         pingPong: false,
-        dither: 'none'
+        dither: 'none',
+        // Share of each edge trimmed from every frame before resizing (crop.js)
+        crop: null
     },
     frames: [],
     currentPreview: null,
@@ -256,6 +258,7 @@ async function rotateFrames(direction) {
             if (state.settings.originalWidth && state.settings.originalHeight) {
                 [state.settings.originalWidth, state.settings.originalHeight] =
                     [state.settings.originalHeight, state.settings.originalWidth];
+                rotateCrop(direction);
                 recalcDimensionsFromScale();
             }
 
@@ -313,11 +316,17 @@ async function alignFrames() {
             // Every frame is now the cropped size
             state.settings.originalWidth = data.width;
             state.settings.originalHeight = data.height;
+
+            // Alignment reframes every image, so a crop drawn on the old
+            // framing no longer lines up with anything
+            const hadCrop = hasCrop();
+            state.settings.crop = null;
             recalcDimensionsFromScale();
 
             stopPreview();
             updateUI();
-            showToast(data.message, data.skipped.length ? 'warning' : 'success');
+            const message = hadCrop ? `${data.message} Crop cleared — set it again on the aligned frames.` : data.message;
+            showToast(message, data.skipped.length || hadCrop ? 'warning' : 'success');
         } else {
             showToast(`Alignment failed: ${data.message}`, 'danger');
         }
@@ -756,11 +765,13 @@ function updateGenerateButtonLabel() {
     }
 }
 
+// Output size is the scale applied to the cropped frame, not the original
 function recalcDimensionsFromScale() {
-    if (!state.settings.originalWidth || !state.settings.originalHeight) return;
+    const source = getCroppedSourceDimensions();
+    if (!source.width || !source.height) return;
     const scale = state.settings.scale;
-    document.getElementById('outputWidth').value = Math.round(state.settings.originalWidth * scale / 100);
-    document.getElementById('outputHeight').value = Math.round(state.settings.originalHeight * scale / 100);
+    document.getElementById('outputWidth').value = Math.max(1, Math.round(source.width * scale / 100));
+    document.getElementById('outputHeight').value = Math.max(1, Math.round(source.height * scale / 100));
 }
 
 function updateOutputSizeDisplay() {
@@ -814,6 +825,8 @@ function updateUI() {
     // Update transition settings
     document.getElementById('transitionType').value = state.settings.transitionType;
     updateTransitionHelp();
+
+    updateCropSummary();
 
     // Render frames
     renderFrames();

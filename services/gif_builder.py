@@ -328,6 +328,7 @@ class GifBuilder:
             dither = project.settings.get('dither', 'none')
             if dither not in DITHER_MODES:
                 dither = 'none'
+            crop = self.image_processor.normalize_crop(project.settings.get('crop'))
 
             is_apng = output_format == 'apng'
 
@@ -378,7 +379,8 @@ class GifBuilder:
                         transparent=transparent,
                         background_color=background_color,
                         alpha_threshold=alpha_threshold,
-                        binarize_alpha=not is_apng
+                        binarize_alpha=not is_apng,
+                        crop=crop
                     )
 
                     if img is None:
@@ -539,7 +541,8 @@ class GifBuilder:
                 transition_time=project.settings.get('transitionTime', 0),
                 transition_steps=project.settings.get('transitionSteps', 5),
                 ping_pong=project.settings.get('pingPong', False),
-                dither=project.settings.get('dither', 'none')
+                dither=project.settings.get('dither', 'none'),
+                crop=project.settings.get('crop')
             )
 
             preview_project.frames = frames_to_use

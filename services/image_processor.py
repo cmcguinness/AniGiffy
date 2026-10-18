@@ -240,6 +240,39 @@ class ImageProcessor:
             logger.error(f"Image resize failed: {e}")
             return None
 
+    @staticmethod
+    def normalize_crop(crop):
+        """
+        Validate a crop sent by the client and return it as a
+        (left, top, right, bottom) tuple of fractions, or None for no crop.
+
+        The crop is the share of the frame to trim from each edge rather than
+        pixels, so one crop fits frames of differing sizes and survives the
+        downscale load_and_validate_image applies to oversized files.
+        """
+        if not isinstance(crop, dict):
+            return None
+        try:
+            box = tuple(float(crop.get(k, 0) or 0) for k in ('left', 'top', 'right', 'bottom'))
+        except (TypeError, ValueError):
+            return None
+        left, top, right, bottom = box
+        if any(v < 0 or v >= 1 for v in box) or left + right >= 1 or top + bottom >= 1:
+            return None
+        if not any(box):
+            return None
+        return box
+
+    def crop_by_fraction(self, img, crop):
+        """Trim the given (left, top, right, bottom) fractions off each edge."""
+        left, top, right, bottom = crop
+        w, h = img.size
+        box = (round(w * left), round(h * top), round(w * (1 - right)), round(h * (1 - bottom)))
+        # Never collapse to nothing on a tiny frame
+        if box[2] <= box[0] or box[3] <= box[1]:
+            return img
+        return img.crop(box)
+
     def hex_to_rgb(self, hex_color):
         """Convert hex color string to RGB tuple"""
         hex_color = hex_color.lstrip('#')
@@ -247,7 +280,7 @@ class ImageProcessor:
 
     def prepare_frame(self, file_path, target_width, target_height,
                       transparent=False, background_color='#FFFFFF', alpha_threshold=128,
-                      binarize_alpha=True):
+                      binarize_alpha=True, crop=None):
         """
         Load and prepare a frame for GIF creation
 
@@ -258,6 +291,8 @@ class ImageProcessor:
             transparent: If True, preserve transparency in GIF
             background_color: Hex color for background when not transparent
             alpha_threshold: Threshold (0-255) for converting semi-transparent to opaque/transparent
+            crop: Optional (left, top, right, bottom) fractions from normalize_crop,
+                trimmed before the resize so the output size applies to the cropped image
 
         Returns prepared image or None on error
         """
@@ -269,6 +304,9 @@ class ImageProcessor:
         # Convert to RGBA for consistent processing
         if img.mode != 'RGBA':
             img = img.convert('RGBA')
+
+        if crop:
+            img = self.crop_by_fraction(img, crop)
 
         # Resize to target dimensions (keeping RGBA)
         img = self.resize_image(img, target_width, target_height, 'contain')

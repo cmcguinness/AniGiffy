@@ -14,8 +14,12 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
   don't match the reference are reported and left untouched
 - **Auto-Detect Dimensions**: Output size automatically set from the largest uploaded image
 - **Auto-Detect Transparency**: Transparency mode enabled automatically if first image has alpha channel
+- **Crop**: Trim the same area from every frame by dragging a box on the first frame or typing
+  how many pixels to take off each edge, with an optional aspect-ratio lock. The crop is a
+  setting applied when the animation is built, so the uploaded images are never changed and it
+  can be adjusted or cleared at any time
 - **Scale Control**: Scale output to a preset percentage (100/75/66/50/33/25/10%) of the
-  original dimensions, or type exact width/height values
+  (cropped) original dimensions, or type exact width/height values
 - **Output Format**: Animated GIF or animated PNG (APNG, with full alpha)
 - **Transparency Support**: Create GIFs with transparent backgrounds
 - **Multiple Transition Types**:
@@ -94,6 +98,9 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
    - **Size Tab**:
      - **Format**: Animated GIF or Animated PNG
      - **Output Scale**: 100%, 75%, 66%, 50%, 33%, 25% or 10% of the original size — or set width/height directly
+     - **Crop**: Click **Crop…** to trim every frame to the same area. Drag the box or type the
+       Left/Right/Top/Bottom pixels to remove; the output size is then applied to the cropped image.
+       Rotating the frames turns the crop with them; Auto-Align clears it, since it reframes every image
      - **Loop Count**: 0 for infinite loop, or specify a number of plays
    - **Advanced Tab**:
      - **Transparent GIF**: Enable for transparency support
@@ -210,7 +217,9 @@ AniGiffy/
 │   └── gif_builder.py     # GIF/APNG creation with Pillow
 ├── static/
 │   ├── css/style.css      # Custom styles
-│   └── js/app.js          # Frontend JavaScript
+│   └── js/
+│       ├── app.js         # Frontend JavaScript
+│       └── crop.js        # Crop dialog (Cropper.js) and crop state
 ├── user_data/             # Per-session storage (auto-created)
 └── templates/
     ├── base.html          # Base template with Bootstrap 5
@@ -247,6 +256,7 @@ AniGiffy/
 - **Flask-Limiter** - Rate limiting
 - **Flask-Session** - Server-side sessions
 - **APScheduler** - Background cleanup tasks
+- **Cropper.js** 1.6 (CDN) - Crop box in the browser
 - **gunicorn** - Production WSGI server
 
 External tools:
