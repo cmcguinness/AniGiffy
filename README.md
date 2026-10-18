@@ -98,7 +98,7 @@ A web-based animated GIF creator with a Flask backend and Bootstrap 5 frontend. 
    - **Size Tab**:
      - **Format**: Animated GIF or Animated PNG
      - **Output Scale**: 100%, 75%, 66%, 50%, 33%, 25% or 10% of the original size — or set width/height directly
-     - **Crop**: Click **Crop…** to trim every frame to the same area. Drag the box or type the
+     - **Crop**: Click **Crop** in the frames toolbar (or **Crop…** here) to trim every frame to the same area. Drag the box or type the
        Left/Right/Top/Bottom pixels to remove; the output size is then applied to the cropped image.
        Rotating the frames turns the crop with them; Auto-Align clears it, since it reframes every image
      - **Loop Count**: 0 for infinite loop, or specify a number of plays

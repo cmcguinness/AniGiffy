@@ -14,6 +14,7 @@ let cropFrameSize = null;      // natural size of the frame shown in the modal
 let syncingCropInputs = false; // true while typed values are pushed into the cropper
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('cropFramesBtn').addEventListener('click', openCropModal);
     document.getElementById('openCropBtn').addEventListener('click', openCropModal);
     document.getElementById('clearCropBtn').addEventListener('click', clearCrop);
     document.getElementById('applyCropBtn').addEventListener('click', applyCrop);
