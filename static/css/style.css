@@ -164,7 +164,13 @@ body {
     padding: 20px;
 }
 
+/* The image's height cap must track the container's: a fixed cap taller than
+   the container on a short window makes the centred image spill out over the
+   card header and buttons. 40px is the container's vertical padding; the
+   floor keeps it filling the container's min-height. */
 #previewImage {
+    max-width: 100%;
+    max-height: clamp(160px, calc(100vh - 460px), 400px);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -234,6 +240,10 @@ body {
 
     .preview-container {
         min-height: 250px;
+    }
+
+    #previewImage {
+        max-height: clamp(210px, calc(100vh - 460px), 400px);
     }
 }
 
